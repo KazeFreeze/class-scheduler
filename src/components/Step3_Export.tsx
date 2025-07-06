@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Download, ArrowLeft } from 'lucide-react';
 import * as ics from 'ics';
+import { useAlert } from '../contexts/AlertContext';
 import type { Schedule, AppStep } from '../types';
 
 interface Props {
@@ -11,10 +12,11 @@ interface Props {
 export const Step3_Export = ({ selectedSections, setStep }: Props) => {
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+    const showAlert = useAlert();
 
     const handleExport = () => {
         if (!startDate || !endDate) {
-            alert("Please select a start and end date for the schedule.");
+            showAlert("Date Missing", "Please select a start and end date for the schedule.");
             return;
         }
 
@@ -68,10 +70,15 @@ export const Step3_Export = ({ selectedSections, setStep }: Props) => {
             });
         });
 
+        if (events.length === 0) {
+            showAlert("No Events", "There are no valid events to export in the selected schedule.");
+            return;
+        }
+
         const { error, value } = ics.createEvents(events);
         if (error) {
             console.error(error);
-            alert("Failed to create .ics file.");
+            showAlert("Export Failed", "An error occurred while creating the .ics file.");
             return;
         }
 

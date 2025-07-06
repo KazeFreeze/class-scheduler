@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { X } from 'lucide-react';
+import { useAlert } from '../contexts/AlertContext';
 import type { UniqueCourse } from '../types';
 
 interface Props {
@@ -10,12 +11,11 @@ interface Props {
 }
 
 export const GroupModal = ({ isOpen, onClose, uniqueCourses, onSave }: Props) => {
-    // These hooks are now called on every render, which is correct.
     const [groupName, setGroupName] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCourses, setSelectedCourses] = useState<Map<string, UniqueCourse>>(new Map());
+    const showAlert = useAlert();
 
-    // This effect resets the modal's state when it opens.
     useEffect(() => {
         if (isOpen) {
             setGroupName('');
@@ -38,8 +38,12 @@ export const GroupModal = ({ isOpen, onClose, uniqueCourses, onSave }: Props) =>
     };
 
     const handleSave = () => {
-        if (!groupName.trim() || selectedCourses.size === 0) {
-            alert("Please provide a group name and add at least one course.");
+        if (!groupName.trim()) {
+            showAlert("Input Required", "Please provide a name for your group.");
+            return;
+        }
+        if (selectedCourses.size === 0) {
+            showAlert("Input Required", "Please add at least one course to the group.");
             return;
         }
         onSave(groupName, [...selectedCourses.keys()]);
@@ -48,23 +52,14 @@ export const GroupModal = ({ isOpen, onClose, uniqueCourses, onSave }: Props) =>
 
     const searchResults = useMemo(() => {
         const lowerCaseSearch = searchTerm.toLowerCase();
-        // Ensure uniqueCourses is treated as an array before filtering.
         const available = Array.from(uniqueCourses.values()).filter(c => !selectedCourses.has(c.code));
         if (!searchTerm) return available.slice(0, 10);
         return available.filter(c => c.code.toLowerCase().includes(lowerCaseSearch) || c.title.toLowerCase().includes(lowerCaseSearch));
     }, [searchTerm, uniqueCourses, selectedCourses]);
 
-    // CORRECTED: The modal is always rendered. Visibility is controlled by CSS classes
-    // based on the `isOpen` prop. This fixes the "rendered more hooks" error.
     return (
-        <div 
-            className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-            onClick={onClose}
-        >
-            <div 
-                className={`bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 flex flex-col h-[90vh] max-h-[700px] transform transition-all duration-300 ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
-                onClick={e => e.stopPropagation()} // Prevent clicks inside the modal from closing it
-            >
+        <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={onClose}>
+            <div className={`bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 flex flex-col h-[90vh] max-h-[700px] transform transition-all duration-300 ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`} onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center mb-4 flex-shrink-0">
                     <h3 className="text-xl font-semibold">Create a Custom Group</h3>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-800"><X size={24} /></button>
