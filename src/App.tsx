@@ -50,7 +50,7 @@ export default function App() {
     const [startSunburstAnimation, setStartSunburstAnimation] = useState(false);
     const [isCalendarVisible, setCalendarVisible] = useState(false);
     const [theme, setTheme] = useTheme();
-    const [zoomLevel, setZoomLevel] = useState(100);
+    const [zoomLevel, setZoomLevel] = useState(125);
 
     // Determine slotDuration based on zoomLevel to change time slot density
     const getSlotDuration = (zoom: number) => {

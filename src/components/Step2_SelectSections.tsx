@@ -97,7 +97,7 @@ export const Step2_SelectSections = ({ allCoursesData, setAllCoursesData, requir
                                             title="Set overall priority for this course requirement (1 is highest)"
                                             value={item.priority}
                                             onChange={e => handleUpdateRequirement(item.id, { priority: parseInt(e.target.value) || 100 })}
-                                            className="w-20 p-1 border rounded-md text-center bg-white dark:bg-gray-700 dark:border-gray-600"
+                                            className="w-20 p-1 border rounded-md text-center bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                         />
                                     </div>
                                 )}

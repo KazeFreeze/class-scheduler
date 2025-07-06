@@ -55,7 +55,7 @@ export const SectionItem = ({ section, isSelected, isConflicting, conflictText, 
                     )}
                     <input 
                         type="checkbox" 
-                        className={`h-5 w-5 rounded border-gray-300 focus:ring-blue-500 disabled:opacity-50 ${section.isCustom ? 'text-purple-600 focus:ring-purple-500' : 'text-blue-600'}`}
+                        className={`h-5 w-5 rounded border-gray-300 dark:bg-gray-900 dark:border-gray-600 focus:ring-blue-500 disabled:opacity-50 ${section.isCustom ? 'text-purple-600 focus:ring-purple-500' : 'text-blue-600'}`}
                         checked={isSelected} 
                         readOnly 
                         disabled={isDisabled} 
@@ -82,7 +82,7 @@ export const SectionItem = ({ section, isSelected, isConflicting, conflictText, 
                                     id={`sec-priority-${section["Subject Code"]}-${section.Section}`}
                                     value={section.priority}
                                     onChange={e => onUpdate({ priority: parseInt(e.target.value) || 100 })}
-                                    className="w-16 p-1 border rounded-md text-center bg-gray-50 dark:bg-gray-700 dark:border-gray-600"
+                                    className="w-16 p-1 border rounded-md text-center bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                     disabled={isDisabled && !isSelected}
                                 />
                             </div>
@@ -94,7 +94,7 @@ export const SectionItem = ({ section, isSelected, isConflicting, conflictText, 
                                     id={`sec-exclude-${section["Subject Code"]}-${section.Section}`}
                                     checked={section.excluded}
                                     onChange={e => onUpdate({ excluded: e.target.checked })}
-                                    className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    className="h-5 w-5 rounded border-gray-300 dark:bg-gray-900 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
                                     disabled={isDisabled && !isSelected}
                                 />
                             </div>
