@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { Coffee, ArrowLeft, Eye, Moon, Sun, ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
+import { Coffee, ArrowLeft, Eye, Moon, Sun, RefreshCw } from 'lucide-react';
 
 import { useCourses } from './hooks/useCourses';
 import { parseCourseToEvents } from './utils/calendarUtils';
@@ -86,8 +86,6 @@ export default function App() {
     const calendarEvents = useMemo(() => {
         return Object.values(selectedSections).flatMap(parseCourseToEvents);
     }, [selectedSections]);
-
-    // ... (rest of the handler functions like handleSaveGroup, runAutoScheduler, etc. remain the same) ...
     
     const handleSaveGroup = (groupName: string, courseCodes: string[]) => {
         const newGroup: Requirement = {
