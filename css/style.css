@@ -1,0 +1,60 @@
+body {
+  font-family: "Inter", sans-serif;
+}
+
+/* Sidebar Scrollbar */
+#course-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+#course-list::-webkit-scrollbar-track {
+  background: #2d3748; /* bg-gray-800 */
+}
+
+#course-list::-webkit-scrollbar-thumb {
+  background: #4a5568; /* bg-gray-600 */
+  border-radius: 4px;
+}
+
+#course-list::-webkit-scrollbar-thumb:hover {
+  background: #718096; /* bg-gray-500 */
+}
+
+/* Custom FullCalendar Styles */
+.fc .fc-toolbar-title {
+  font-size: 1.5em;
+  font-weight: 700;
+}
+
+.fc .fc-button {
+  background-color: #e2e8f0; /* bg-gray-200 */
+  color: #4a5568; /* text-gray-700 */
+  border: none;
+  box-shadow: none;
+  text-transform: capitalize;
+}
+
+.fc .fc-button:hover {
+  background-color: #cbd5e0; /* bg-gray-300 */
+}
+
+.fc-event {
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  font-weight: 500;
+}
+
+.fc-event-main {
+  padding: 4px 6px !important;
+}
+
+/* Custom Event Colors */
+.fc-event.event-green {
+  background-color: #a3e635 !important;
+  border-color: #84cc16 !important;
+  color: #1f2937 !important; /* Dark text for light background */
+}
+
+.fc-event.event-blue {
+  background-color: #60a5fa !important;
+  border-color: #3b82f6 !important;
+}
