@@ -58,6 +58,62 @@ export default function App() {
     const [theme, setTheme] = useTheme();
     const [zoomIndex, setZoomIndex] = useState(1); // Default to Medium
 
+    // Load state from localStorage on initial component mount
+    useEffect(() => {
+        try {
+            const savedStateJSON = localStorage.getItem('classSchedulerState');
+            if (savedStateJSON) {
+                const savedState = JSON.parse(savedStateJSON);
+                if (savedState.step) setStep(savedState.step);
+                if (savedState.requiredItems) setRequiredItems(savedState.requiredItems);
+                if (savedState.selectedSections) setSelectedSections(savedState.selectedSections);
+                if (savedState.generatedSchedules) setGeneratedSchedules(savedState.generatedSchedules);
+                if (savedState.currentScheduleIndex) setCurrentScheduleIndex(savedState.currentScheduleIndex);
+                if (savedState.zoomIndex !== undefined) setZoomIndex(savedState.zoomIndex);
+            }
+        } catch (e) {
+            console.error("Could not load state from local storage", e);
+            localStorage.removeItem('classSchedulerState'); // Clear corrupted state
+        }
+    }, []); // Empty array ensures this runs only once on mount
+
+    // Save state to localStorage whenever it changes, but not during initial data fetch
+    useEffect(() => {
+        if (!loading) {
+            const stateToSave = {
+                step,
+                requiredItems,
+                selectedSections,
+                generatedSchedules,
+                currentScheduleIndex,
+                zoomIndex,
+            };
+            localStorage.setItem('classSchedulerState', JSON.stringify(stateToSave));
+        }
+    }, [step, requiredItems, selectedSections, generatedSchedules, currentScheduleIndex, zoomIndex, loading]);
+
+    // Re-hydrate custom classes into the main course list after API data and localStorage have loaded
+    useEffect(() => {
+        if (!loading && requiredItems.length > 0) {
+            const customSectionsFromStorage = requiredItems
+                .filter(req => req.isCustom && selectedSections[req.id])
+                .map(req => selectedSections[req.id]);
+
+            if (customSectionsFromStorage.length > 0) {
+                setAllCoursesData(currentCourses => {
+                    const currentCustomIds = new Set(currentCourses.filter(c => c.isCustom).map(c => `custom_${c['Subject Code']}_${c.Section}`));
+                    const newCustomSections = customSectionsFromStorage.filter(sec => !currentCustomIds.has(`custom_${sec['Subject Code']}_${sec.Section}`));
+                    
+                    if (newCustomSections.length > 0) {
+                        return [...currentCourses, ...newCustomSections];
+                    }
+                    return currentCourses;
+                });
+            }
+        }
+    }, [loading, requiredItems, selectedSections, setAllCoursesData]);
+
+
     const handleZoomIn = () => setZoomIndex(prev => Math.min(prev + 1, zoomConfigs.length - 1));
     const handleZoomOut = () => setZoomIndex(prev => Math.max(prev - 1, 0));
     const currentZoom = zoomConfigs[zoomIndex];
@@ -222,16 +278,22 @@ export default function App() {
     }, [currentScheduleIndex, generatedSchedules]);
 
     useEffect(() => {
+        // This effect is more complex now due to persistence.
+        // We only want to clear selections if the required items have fundamentally changed,
+        // not just on initial load from localStorage.
+        // A more robust solution might involve comparing the new requiredItems with the old.
+        // For now, this simplified logic is kept.
+        const requiredIds = new Set(requiredItems.map(r => r.id));
+        const newSelectedSections: Schedule = {};
+        for(const reqId in selectedSections){
+            if(requiredIds.has(reqId)){
+                newSelectedSections[reqId] = selectedSections[reqId];
+            }
+        }
+        setSelectedSections(newSelectedSections);
         setGeneratedSchedules([]);
         setCurrentScheduleIndex(0);
-        setSelectedSections(prev => {
-            const newSelections: Schedule = {};
-            const requiredIds = new Set(requiredItems.map(r => r.id));
-            for (const key in prev) {
-                if(requiredIds.has(key)) { newSelections[key] = prev[key]; }
-            }
-            return newSelections;
-        });
+
     }, [requiredItems]);
 
     const renderStep = () => {
