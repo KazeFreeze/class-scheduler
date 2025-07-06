@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { Coffee, ArrowLeft, Eye } from 'lucide-react';
+import { Coffee, ArrowLeft, Eye, Moon, Sun } from 'lucide-react';
 
 import { useCourses } from './hooks/useCourses';
 import { parseCourseToEvents } from './utils/calendarUtils';
@@ -16,6 +16,21 @@ import { AlertModal } from './components/AlertModal';
 import { AboutModal } from './components/AboutModal';
 import { AlertContext } from './contexts/AlertContext';
 import type { Requirement, Schedule, AppStep, CourseSection } from './types';
+
+// Simple hook to manage theme state
+const useTheme = () => {
+    const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+
+    useEffect(() => {
+        const root = window.document.documentElement;
+        root.classList.remove(theme === 'light' ? 'dark' : 'light');
+        root.classList.add(theme);
+        localStorage.setItem('theme', theme);
+    }, [theme]);
+
+    return [theme, setTheme] as const;
+};
+
 
 export default function App() {
     const { allCoursesData, setAllCoursesData, uniqueCourses, loading, error } = useCourses();
@@ -34,6 +49,7 @@ export default function App() {
     const [presetGroupAdded, setPresetGroupAdded] = useState(false);
     const [startSunburstAnimation, setStartSunburstAnimation] = useState(false);
     const [isCalendarVisible, setCalendarVisible] = useState(false);
+    const [theme, setTheme] = useTheme();
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -41,6 +57,10 @@ export default function App() {
         }, 10000); // 10 seconds
         return () => clearTimeout(timer); // Cleanup timer on unmount
     }, []);
+
+    const toggleTheme = () => {
+        setTheme(theme === 'light' ? 'dark' : 'light');
+    };
 
     const showAlert = useCallback((title: string, message: string) => {
         setAlertConfig({ isOpen: true, title, message });
@@ -227,30 +247,39 @@ export default function App() {
 
     return (
         <AlertContext.Provider value={showAlert}>
-            <div className="flex h-screen overflow-hidden bg-gray-100 font-sans text-gray-800">
+            <div className="flex h-screen overflow-hidden bg-gray-100 dark:bg-gray-900 font-sans text-gray-800 dark:text-gray-100">
                 <AlertModal isOpen={alertConfig.isOpen} onClose={() => setAlertConfig({ ...alertConfig, isOpen: false })} title={alertConfig.title} message={alertConfig.message} />
                 <AboutModal isOpen={isAboutModalOpen} onClose={() => setAboutModalOpen(false)} />
                 <GroupModal isOpen={isGroupModalOpen} onClose={() => setGroupModalOpen(false)} uniqueCourses={uniqueCourses} onSave={handleSaveGroup} />
                 <CustomClassModal isOpen={isCustomClassModalOpen} onClose={() => setCustomClassModalOpen(false)} onSave={handleSaveCustomClass} initialData={editingClass} />
                 
-                <aside className={`${isCalendarVisible ? 'hidden' : 'flex'} md:flex w-full md:w-1/3 max-w-lg bg-white border-r border-gray-200 flex-col`}>
-                    <div className="p-4 border-b border-gray-200 flex-shrink-0">
-                        <div className="flex justify-between items-center">
+                <aside className={`${isCalendarVisible ? 'hidden' : 'flex'} md:flex w-full md:w-1/3 max-w-lg bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-col`}>
+                    <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+                        <div className="flex justify-between items-center gap-4">
                             <h1 className="text-2xl font-bold">Class Planner</h1>
-                            <button 
-                                onClick={() => setAboutModalOpen(true)} 
-                                title="About this project" 
-                                className={`relative text-yellow-600 hover:text-yellow-700 hover:scale-110 transition-transform p-1 rounded-full ${startSunburstAnimation ? 'animate-sunburst' : ''}`}
-                            >
-                                <Coffee size={24} />
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={toggleTheme}
+                                    title="Toggle night mode"
+                                    className="text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors p-2 rounded-full"
+                                >
+                                    {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+                                </button>
+                                <button 
+                                    onClick={() => setAboutModalOpen(true)} 
+                                    title="About this project" 
+                                    className={`relative text-yellow-600 hover:text-yellow-700 hover:scale-110 transition-transform p-2 rounded-full ${startSunburstAnimation ? 'animate-sunburst' : ''}`}
+                                >
+                                    <Coffee size={20} />
+                                </button>
+                            </div>
                         </div>
-                        <p className="text-sm text-gray-500">{subtitleText[step]}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{subtitleText[step]}</p>
                     </div>
                     
                     {allCoursesData.length > 0 && renderStep()}
 
-                    <div className="p-4 mt-auto border-t border-gray-200 md:hidden">
+                    <div className="p-4 mt-auto border-t border-gray-200 dark:border-gray-700 md:hidden">
                         <button
                             onClick={() => setCalendarVisible(true)}
                             className="w-full bg-blue-600 text-white py-2 px-4 rounded-md font-semibold flex items-center justify-center gap-2"
@@ -260,18 +289,29 @@ export default function App() {
                     </div>
                 </aside>
 
-                <main className={`${isCalendarVisible ? 'flex' : 'hidden'} md:flex flex-1 flex-col bg-gray-50`}>
-                    <header className="bg-white border-b border-gray-200 p-4 flex justify-between items-center">
+                <main className={`${isCalendarVisible ? 'flex' : 'hidden'} md:flex flex-1 flex-col bg-gray-50 dark:bg-gray-950`}>
+                    <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex justify-between items-center">
                         <h2 className="text-xl font-bold">Weekly Schedule Preview</h2>
                         <button
                             onClick={() => setCalendarVisible(false)}
-                            className="md:hidden bg-gray-200 text-gray-800 py-1.5 px-3 rounded-md font-semibold flex items-center gap-2 text-sm"
+                            className="md:hidden bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 py-1.5 px-3 rounded-md font-semibold flex items-center gap-2 text-sm"
                         >
                             <ArrowLeft size={16} /> Back
                         </button>
                     </header>
-                    <div className="flex-1 p-4 relative">
-                        <FullCalendar plugins={[timeGridPlugin, interactionPlugin]} initialView="timeGridWeek" headerToolbar={false} allDaySlot={false} hiddenDays={[0]} slotMinTime="07:00:00" slotMaxTime="22:00:00" height="100%" events={calendarEvents} eventTimeFormat={{ hour: 'numeric', minute: '2-digit', meridiem: 'short' }} firstDay={1} contentHeight="auto" />
+                    <div className="flex-1 p-4 relative overflow-y-auto">
+                        <FullCalendar
+                            plugins={[timeGridPlugin, interactionPlugin]}
+                            initialView="timeGridWeek"
+                            headerToolbar={false}
+                            allDaySlot={false}
+                            hiddenDays={[0]}
+                            slotMinTime="07:00:00"
+                            slotMaxTime="22:00:00"
+                            events={calendarEvents}
+                            eventTimeFormat={{ hour: 'numeric', minute: '2-digit', meridiem: 'short' }}
+                            firstDay={1}
+                         />
                     </div>
                 </main>
             </div>

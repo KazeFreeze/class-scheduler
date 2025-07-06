@@ -43,6 +43,7 @@ export const Step3_Export = ({ selectedSections, setStep }: Props) => {
                 
                 const dayStr = dayStrMatch[1];
                 const days: ('MO' | 'TU' | 'WE' | 'TH' | 'FR' | 'SA')[] = [];
+                
                 let i = 0;
                 while (i < dayStr.length) {
                     let dayChar = dayStr[i];
@@ -57,6 +58,8 @@ export const Step3_Export = ({ selectedSections, setStep }: Props) => {
 
                 if (days.length > 0) {
                     const startArr = startDate.split('-').map(Number);
+                    // The end date for the recurrence rule should be a DATE value, not a DATETIME, for better compatibility.
+                    const untilDate = endDate.replace(/-/g, '');
                     
                     events.push({
                         title: `${section["Subject Code"]} (${section.Section})`,
@@ -64,7 +67,7 @@ export const Step3_Export = ({ selectedSections, setStep }: Props) => {
                         location: section.Room,
                         start: [startArr[0], startArr[1], startArr[2], parseInt(startHour), parseInt(startMinute)],
                         end: [startArr[0], startArr[1], startArr[2], parseInt(endHour), parseInt(endMinute)],
-                        recurrenceRule: `FREQ=WEEKLY;BYDAY=${days.join(',')};UNTIL=${endDate.replace(/-/g, '')}T235959Z`,
+                        recurrenceRule: `FREQ=WEEKLY;BYDAY=${days.join(',')};UNTIL=${untilDate}`,
                     });
                 }
             });
@@ -99,20 +102,20 @@ export const Step3_Export = ({ selectedSections, setStep }: Props) => {
                 <h3 className="text-lg font-semibold mb-3">Set Schedule Period</h3>
                 <div className="space-y-4">
                     <div>
-                        <label htmlFor="start-date" className="block text-sm font-medium text-gray-700">Schedule Start Date</label>
-                        <input type="date" id="start-date" value={startDate} onChange={e => setStartDate(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2" />
+                         <label htmlFor="start-date" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Schedule Start Date</label>
+                        <input type="date" id="start-date" value={startDate} onChange={e => setStartDate(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2" />
                     </div>
                     <div>
-                        <label htmlFor="end-date" className="block text-sm font-medium text-gray-700">Schedule End Date</label>
-                        <input type="date" id="end-date" value={endDate} onChange={e => setEndDate(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2" />
+                         <label htmlFor="end-date" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Schedule End Date</label>
+                        <input type="date" id="end-date" value={endDate} onChange={e => setEndDate(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2" />
                     </div>
                 </div>
             </div>
-            <div className="mt-4 pt-4 border-t border-gray-200 flex-shrink-0 flex flex-col gap-2">
-                <button onClick={handleExport} className="w-full bg-gray-800 text-white py-2.5 px-4 rounded-md hover:bg-black font-semibold flex items-center justify-center gap-2">
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col gap-2">
+                <button onClick={handleExport} className="w-full bg-gray-800 hover:bg-black dark:bg-gray-200 dark:hover:bg-white dark:text-black text-white py-2.5 px-4 rounded-md font-semibold flex items-center justify-center gap-2">
                     <Download size={16} /> Export .ics File
                 </button>
-                <button onClick={() => setStep(2)} className="w-full text-center text-blue-600 hover:underline font-medium py-2 mt-1 flex items-center justify-center gap-2">
+                <button onClick={() => setStep(2)} className="w-full text-center text-blue-600 dark:text-blue-400 hover:underline font-medium py-2 mt-1 flex items-center justify-center gap-2">
                     <ArrowLeft size={16} /> Back to Section Selection
                 </button>
             </div>
