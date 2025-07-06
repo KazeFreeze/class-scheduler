@@ -13,11 +13,9 @@ import { GroupModal } from './components/GroupModal';
 import type { Requirement, Schedule, AppStep, CourseSection } from './types';
 
 export default function App() {
-    // The useCourses hook now provides the initial data fetch
-    const { courses, uniqueCourses, loading, error } = useCourses();
-    
-    // App-level state for all course data, allowing modifications (e.g., section priority)
-    const [allCoursesData, setAllCoursesData] = useState<CourseSection[]>([]);
+    // The useCourses hook is the single source of truth for course data.
+    // `allCoursesData` and `setAllCoursesData` are now used directly from the hook.
+    const { allCoursesData, setAllCoursesData, uniqueCourses, loading, error } = useCourses();
     
     const [step, setStep] = useState<AppStep>(1);
     const [requiredItems, setRequiredItems] = useState<Requirement[]>([]);
@@ -27,12 +25,7 @@ export default function App() {
     const [generatedSchedules, setGeneratedSchedules] = useState<Schedule[]>([]);
     const [currentScheduleIndex, setCurrentScheduleIndex] = useState(0);
 
-    // Populate app-level state once the data is fetched
-    useEffect(() => {
-        if (courses.length > 0) {
-            setAllCoursesData(courses);
-        }
-    }, [courses]);
+    // This useEffect is no longer needed as we use the state from the hook directly.
 
     // Memoized calendar events derived from the currently selected sections
     const calendarEvents = useMemo(() => {
