@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { Coffee } from 'lucide-react';
+import { Coffee, ArrowLeft, Eye } from 'lucide-react';
 
 import { useCourses } from './hooks/useCourses';
 import { parseCourseToEvents } from './utils/calendarUtils';
@@ -33,6 +33,7 @@ export default function App() {
     const [currentScheduleIndex, setCurrentScheduleIndex] = useState(0);
     const [presetGroupAdded, setPresetGroupAdded] = useState(false);
     const [startSunburstAnimation, setStartSunburstAnimation] = useState(false);
+    const [isCalendarVisible, setCalendarVisible] = useState(false);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -232,7 +233,7 @@ export default function App() {
                 <GroupModal isOpen={isGroupModalOpen} onClose={() => setGroupModalOpen(false)} uniqueCourses={uniqueCourses} onSave={handleSaveGroup} />
                 <CustomClassModal isOpen={isCustomClassModalOpen} onClose={() => setCustomClassModalOpen(false)} onSave={handleSaveCustomClass} initialData={editingClass} />
                 
-                <aside className="w-full md:w-1/3 max-w-lg bg-white border-r border-gray-200 flex flex-col">
+                <aside className={`${isCalendarVisible ? 'hidden' : 'flex'} md:flex w-full md:w-1/3 max-w-lg bg-white border-r border-gray-200 flex-col`}>
                     <div className="p-4 border-b border-gray-200 flex-shrink-0">
                         <div className="flex justify-between items-center">
                             <h1 className="text-2xl font-bold">Class Planner</h1>
@@ -246,18 +247,32 @@ export default function App() {
                         </div>
                         <p className="text-sm text-gray-500">{subtitleText[step]}</p>
                     </div>
+                    
                     {allCoursesData.length > 0 && renderStep()}
+
+                    <div className="p-4 mt-auto border-t border-gray-200 md:hidden">
+                        <button
+                            onClick={() => setCalendarVisible(true)}
+                            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md font-semibold flex items-center justify-center gap-2"
+                        >
+                            <Eye size={16} /> View Schedule Preview
+                        </button>
+                    </div>
                 </aside>
 
-                <main className="hidden md:flex flex-1 flex-col bg-gray-50">
+                <main className={`${isCalendarVisible ? 'flex' : 'hidden'} md:flex flex-1 flex-col bg-gray-50`}>
                     <header className="bg-white border-b border-gray-200 p-4 flex justify-between items-center">
                         <h2 className="text-xl font-bold">Weekly Schedule Preview</h2>
+                        <button
+                            onClick={() => setCalendarVisible(false)}
+                            className="md:hidden bg-gray-200 text-gray-800 py-1.5 px-3 rounded-md font-semibold flex items-center gap-2 text-sm"
+                        >
+                            <ArrowLeft size={16} /> Back
+                        </button>
                     </header>
                     <div className="flex-1 p-4 relative">
                         <FullCalendar plugins={[timeGridPlugin, interactionPlugin]} initialView="timeGridWeek" headerToolbar={false} allDaySlot={false} hiddenDays={[0]} slotMinTime="07:00:00" slotMaxTime="22:00:00" height="100%" events={calendarEvents} eventTimeFormat={{ hour: 'numeric', minute: '2-digit', meridiem: 'short' }} firstDay={1} contentHeight="auto" />
                     </div>
                 </main>
             </div>
-        </AlertContext.Provider>
-    );
-}
+        </Aler...
