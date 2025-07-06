@@ -44,8 +44,6 @@ export default function App() {
         const requirementsToSchedule: Requirement[] = [];
 
         requiredItems.forEach(req => {
-            // Course-level exclusion is now handled by the scheduler logic,
-            // but we still respect the `isLocked` property for manual selections.
             const selected = selectedSections[req.id];
             if (selected && selected.isLocked) {
                 lockedSelections[req.id] = selected;
@@ -54,7 +52,6 @@ export default function App() {
             }
         });
 
-        // 1. Sort requirements by their overall priority (course-level)
         requirementsToSchedule.sort((a, b) => a.priority - b.priority);
         
         const getSectionsForId = (id: string): CourseSection[] => {
@@ -67,20 +64,15 @@ export default function App() {
         const sectionsByRequirement = new Map<string, CourseSection[]>();
         requirementsToSchedule.forEach(req => {
             const possibleSections = getSectionsForId(req.id);
-            
-            // Filter out sections that are explicitly excluded by the user or have no slots
             const validSections = possibleSections.filter(sec => !sec.excluded && sec.Slots > 0);
-            
-            // 2. Sort the valid sections by their individual priority
             validSections.sort((a, b) => a.priority - b.priority);
-
             sectionsByRequirement.set(req.id, validSections);
         });
 
         const schedules: Schedule[] = [];
 
         function findSchedulesRecursive(reqIndex: number, currentSchedule: Schedule) {
-            if (schedules.length >= 50) return;
+            if (schedules.length >= 100) return; // Limit to 100 raw schedules for performance
 
             if (reqIndex === requirementsToSchedule.length) {
                 schedules.push({ ...currentSchedule });
@@ -94,26 +86,44 @@ export default function App() {
                 if (!checkForConflict(section, currentSchedule, req.id)) {
                     currentSchedule[req.id] = section;
                     findSchedulesRecursive(reqIndex + 1, currentSchedule);
-                    delete currentSchedule[req.id]; // Backtrack
+                    delete currentSchedule[req.id];
                 }
             }
         }
 
         findSchedulesRecursive(0, { ...lockedSelections });
 
-        if (schedules.length > 0) {
-            setGeneratedSchedules(schedules);
+        // CORRECTED: Add de-duplication logic to ensure every schedule shown is unique.
+        const uniqueSchedules: Schedule[] = [];
+        const seenSchedules = new Set<string>();
+
+        for (const schedule of schedules) {
+            // Create a consistent string key for each schedule based on its contents.
+            const scheduleKey = Object.keys(schedule).sort().map(reqId => {
+                const section = schedule[reqId];
+                return `${reqId}:${section['Subject Code']}:${section.Section}`;
+            }).join('|');
+
+            if (!seenSchedules.has(scheduleKey)) {
+                seenSchedules.add(scheduleKey);
+                uniqueSchedules.push(schedule);
+            }
+        }
+
+        if (uniqueSchedules.length > 0) {
+            setGeneratedSchedules(uniqueSchedules);
             setCurrentScheduleIndex(0);
-            setSelectedSections(schedules[0]);
-            alert(`Successfully generated ${schedules.length} possible schedules!`);
+            setSelectedSections(uniqueSchedules[0]);
+            alert(`Successfully generated ${uniqueSchedules.length} unique schedules!`);
         } else {
+            setGeneratedSchedules([]);
             setSelectedSections(lockedSelections);
             alert("Could not find any valid schedule with the given constraints and priorities.");
         }
     };
     
     useEffect(() => {
-        if (generatedSchedules.length > 0) {
+        if (generatedSchedules.length > 0 && currentScheduleIndex < generatedSchedules.length) {
             setSelectedSections(generatedSchedules[currentScheduleIndex]);
         }
     }, [currentScheduleIndex, generatedSchedules]);
@@ -139,7 +149,6 @@ export default function App() {
             case 1:
                 return <Step1_CourseSelection uniqueCourses={uniqueCourses} requiredItems={requiredItems} setRequiredItems={setRequiredItems} setStep={setStep} openGroupModal={() => setGroupModalOpen(true)} />;
             case 2:
-                // Pass down all required state and setters to Step 2
                 return <Step2_SelectSections 
                     allCoursesData={allCoursesData} 
                     setAllCoursesData={setAllCoursesData} 
