@@ -1,51 +1,51 @@
-import { useState, useEffect } from "react";
-import type { CourseSection, UniqueCourse } from "../types";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-export const useCourses = () => {
-  const [allCoursesData, setAllCoursesData] = useState<CourseSection[]>([]);
-  const [uniqueCourses, setUniqueCourses] = useState<Map<string, UniqueCourse>>(
-    new Map()
-  );
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+// Define the necessary types directly within the API route file.
+// This makes the function self-contained and avoids pathing issues.
+interface CourseSection {
+  "Subject Code": string;
+  "Course Title": string;
+  Section: string;
+  Time: string;
+  Room: string;
+  Instructor: string;
+}
 
-  useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        // This will now work on Vercel because the function is in the /api directory
-        const response = await fetch("/api/getClasses");
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
+export default async function handler(
+  // The request object is not used, but is required by the Vercel function signature.
+  // The underscore prefix tells the linter to ignore the unused variable warning.
+  _request: VercelRequest,
+  response: VercelResponse
+) {
+  // It's recommended to store the Gist URL in an environment variable for security.
+  const gistUrl = process.env.GIST_URL;
 
-        const coursesWithDefaults = data.courses.map((c: CourseSection) => ({
-          ...c,
-          priority: 100,
-          excluded: false,
-        }));
-        setAllCoursesData(coursesWithDefaults);
+  if (!gistUrl) {
+    return response.status(500).json({ error: "Gist URL is not configured." });
+  }
 
-        const newUniqueCourses = new Map<string, UniqueCourse>();
-        coursesWithDefaults.forEach((course: CourseSection) => {
-          const code = course["Subject Code"];
-          if (!newUniqueCourses.has(code)) {
-            newUniqueCourses.set(code, { code, title: course["Course Title"] });
-          }
-        });
-        setUniqueCourses(newUniqueCourses);
-      } catch (e: any) {
-        setError(
-          `Failed to fetch course data. Please ensure the API is running. Error: ${e.message}`
-        );
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
-    };
+  try {
+    // Fetch the data from the Gist
+    const dataResponse = await fetch(gistUrl);
+    if (!dataResponse.ok) {
+      throw new Error(
+        `Failed to fetch from Gist with status: ${dataResponse.status}`
+      );
+    }
+    const courses: { courses: CourseSection[] } = await dataResponse.json();
 
-    fetchCourses();
-  }, []);
+    // Set caching headers to improve performance and reduce costs.
+    response.setHeader(
+      "Cache-Control",
+      "s-maxage=3600, stale-while-revalidate"
+    );
 
-  return { allCoursesData, uniqueCourses, loading, error };
-};
+    // Return the course data as a JSON response
+    return response.status(200).json(courses);
+  } catch (error: any) {
+    console.error(error);
+    return response
+      .status(500)
+      .json({ error: "Failed to fetch course data.", details: error.message });
+  }
+}
