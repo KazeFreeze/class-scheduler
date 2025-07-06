@@ -12,13 +12,22 @@ body {
 }
 ::-webkit-scrollbar-track {
   background: #f1f1f1;
+  .dark & {
+    background: #1f2937;
+  }
 }
 ::-webkit-scrollbar-thumb {
   background: #d1d5db; /* gray-300 */
   border-radius: 4px;
+  .dark & {
+    background: #4b5563;
+  }
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #9ca3af; /* gray-400 */
+  .dark & {
+    background: #6b7280;
+  }
 }
 
 /* FullCalendar Overrides */
@@ -44,6 +53,18 @@ body {
 .fc-theme-standard td,
 .fc-theme-standard th {
   border-color: #e5e7eb !important; /* gray-200 */
+}
+
+/* Dark Mode Calendar Overrides */
+.dark .fc .fc-col-header-cell-cushion {
+  color: #d1d5db !important; /* gray-300 */
+}
+.dark .fc-theme-standard .fc-col-header-cell {
+  background-color: #1f2937; /* gray-800 */
+}
+.dark .fc-theme-standard td,
+.dark .fc-theme-standard th {
+  border-color: #374151 !important; /* gray-700 */
 }
 
 /* Custom Sunburst Animation for Coffee Icon */

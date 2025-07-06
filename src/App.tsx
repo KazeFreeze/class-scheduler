@@ -52,13 +52,8 @@ export default function App() {
     const [theme, setTheme] = useTheme();
     const [zoomLevel, setZoomLevel] = useState(100);
 
-    // Determine slotDuration based on zoomLevel
-    const getSlotDuration = (zoom: number) => {
-        if (zoom < 50) return '01:00:00'; // Zoomed out
-        if (zoom > 125) return '00:15:00'; // Zoomed in
-        return '00:30:00'; // Default
-    };
-    const slotDuration = getSlotDuration(zoomLevel);
+    // Calculate dynamic height for the calendar based on zoom
+    const calendarHeight = 1400 * (zoomLevel / 100); // Base height * zoom factor
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -256,7 +251,7 @@ export default function App() {
 
     return (
         <AlertContext.Provider value={showAlert}>
-            <div className="flex h-screen overflow-hidden bg-gray-100 dark:bg-gray-900 font-sans text-gray-800 dark:text-gray-100">
+            <div className="flex h-screen overflow-hidden bg-gray-100 dark:bg-gray-900 font-sans text-gray-800 dark:text-gray-200">
                 <AlertModal isOpen={alertConfig.isOpen} onClose={() => setAlertConfig({ ...alertConfig, isOpen: false })} title={alertConfig.title} message={alertConfig.message} />
                 <AboutModal isOpen={isAboutModalOpen} onClose={() => setAboutModalOpen(false)} />
                 <GroupModal isOpen={isGroupModalOpen} onClose={() => setGroupModalOpen(false)} uniqueCourses={uniqueCourses} onSave={handleSaveGroup} />
@@ -302,20 +297,20 @@ export default function App() {
                     <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-3 flex-wrap justify-between items-center gap-3 flex">
                         <h2 className="text-xl font-bold">Weekly Schedule</h2>
                         <div className="flex items-center gap-2 text-sm">
-                            <button title="Zoom Out" onClick={() => setZoomLevel(prev => Math.max(0, prev - 10))} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"><ZoomOut size={16}/></button>
-                            <input type="range" min="0" max="150" value={zoomLevel} onChange={e => setZoomLevel(Number(e.target.value))} className="w-24"/>
-                            <button title="Zoom In" onClick={() => setZoomLevel(prev => Math.min(150, prev + 10))} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"><ZoomIn size={16}/></button>
+                            <button title="Zoom Out" onClick={() => setZoomLevel(prev => Math.max(100, prev - 25))} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"><ZoomOut size={16}/></button>
+                            <input type="range" min="100" max="500" value={zoomLevel} onChange={e => setZoomLevel(Number(e.target.value))} className="w-24"/>
+                            <button title="Zoom In" onClick={() => setZoomLevel(prev => Math.min(500, prev + 25))} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"><ZoomIn size={16}/></button>
                             <span className="w-10 text-center">{zoomLevel}%</span>
                         </div>
                         <button
                             onClick={() => setCalendarVisible(false)}
-                            className="md:hidden bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 py-1.5 px-3 rounded-md font-semibold flex items-center gap-2 text-sm"
+                            className="md:hidden bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 py-1.5 px-3 rounded-md font-semibold flex items-center gap-2 text-sm"
                         >
                             <ArrowLeft size={16} /> Back
                         </button>
                     </header>
-                    <div className="flex-1 relative overflow-y-auto">
-                        <div className="p-4">
+                    <div className="flex-1 relative overflow-y-auto p-4">
+                        <div style={{ height: `${calendarHeight}px` }}>
                             <FullCalendar
                                 plugins={[timeGridPlugin, interactionPlugin]}
                                 initialView="timeGridWeek"
@@ -324,10 +319,11 @@ export default function App() {
                                 hiddenDays={[0]}
                                 slotMinTime="00:00:00"
                                 slotMaxTime="24:00:00"
-                                slotDuration={slotDuration}
+                                slotDuration='00:30:00'
                                 events={calendarEvents}
                                 eventTimeFormat={{ hour: 'numeric', minute: '2-digit', meridiem: 'short' }}
                                 firstDay={1}
+                                height="100%"
                             />
                         </div>
                     </div>
