@@ -41,46 +41,90 @@ body {
   white-space: normal;
 }
 
-/* Modal Styling */
-#course-modal,
-#group-modal {
-  display: none; /* Initially hidden */
-  align-items: center;
-  justify-content: center;
-}
-#course-modal.flex,
-#group-modal.flex {
-  display: flex; /* Show when class is added */
+/* Make calendar grid lines less prominent */
+.fc-theme-standard td,
+.fc-theme-standard th {
+  border-color: #e5e7eb; /* gray-200 */
 }
 
-/* Required Course Item Styling */
-.required-course-item,
-.custom-group-item {
+/* Modal Styling */
+#group-modal {
+  z-index: 100; /* Ensure modal is on top */
+}
+
+/* Available Course List Item */
+.available-course-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid #e5e7eb; /* gray-200 */
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.available-course-item:hover {
+  background-color: #f3f4f6; /* gray-100 */
+  border-color: #d1d5db; /* gray-300 */
+}
+
+.available-course-item.selected {
+  background-color: #eff6ff; /* blue-50 */
+  border-color: #3b82f6; /* blue-500 */
+  color: #1d4ed8; /* blue-800 */
+  font-weight: 600;
+}
+
+.available-course-item.selected-group {
+  background-color: #f0fdf4; /* green-50 */
+  border-color: #22c55e; /* green-500 */
+  color: #15803d; /* green-800 */
+}
+
+/* Required Course Section Styling */
+.required-course-header {
   background-color: #f9fafb; /* gray-50 */
   border: 1px solid #e5e7eb; /* gray-200 */
   border-radius: 8px;
   padding: 12px;
+  margin-bottom: 8px;
 }
+
 .section-item {
   background-color: white;
-  padding: 8px;
+  padding: 10px;
   border-radius: 6px;
   border: 1px solid #e5e7eb; /* gray-200 */
   transition: all 0.2s;
+  cursor: pointer;
 }
+
+.section-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
 .section-item.selected {
   border-color: #3b82f6; /* blue-500 */
   background-color: #eff6ff; /* blue-50 */
   box-shadow: 0 0 0 2px #3b82f6;
 }
+
 .section-item.conflict {
-  background-color: #fecaca; /* red-200 */
-  opacity: 0.6;
+  background-color: #fef2f2; /* red-50 */
+  border-color: #ef4444; /* red-500 */
+  opacity: 0.7;
   cursor: not-allowed;
+}
+.section-item.conflict:hover {
+  transform: none;
+  box-shadow: none;
 }
 
 .priority-input {
-  width: 50px;
+  width: 60px;
+  padding: 4px 8px;
   text-align: center;
   border-radius: 4px;
   border: 1px solid #d1d5db;
