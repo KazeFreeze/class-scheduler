@@ -29,6 +29,9 @@ export const SectionItem = ({ section, isSelected, isConflicting, conflictText, 
         }
     };
 
+    // Check if remarks are meaningful (not null, empty, or just a dash)
+    const hasMeaningfulRemarks = section.Remarks && section.Remarks.trim() !== '-';
+
     return (
         <div className={`${baseClasses} ${isSelected ? selectedClasses : ''} ${isDisabled ? disabledClasses : hoverClasses}`} onClick={handleClick}>
             <div className="flex justify-between items-start">
@@ -60,8 +63,8 @@ export const SectionItem = ({ section, isSelected, isConflicting, conflictText, 
                 </div>
             </div>
 
-            {/* Remarks section */}
-            {section.Remarks && (
+            {/* CORRECTED: Remarks section now only displays if the text is meaningful */}
+            {hasMeaningfulRemarks && (
                 <div className="mt-2 p-2 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 text-xs flex items-start gap-2">
                     <Info size={16} className="flex-shrink-0 mt-0.5" />
                     <p>{section.Remarks}</p>

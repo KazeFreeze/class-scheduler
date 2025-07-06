@@ -23,6 +23,29 @@ export default function App() {
     const [generatedSchedules, setGeneratedSchedules] = useState<Schedule[]>([]);
     const [currentScheduleIndex, setCurrentScheduleIndex] = useState(0);
 
+    // This effect runs once the course data is loaded from the API.
+    // It automatically creates and adds the "Interdisciplinary Elective" group.
+    useEffect(() => {
+        if (allCoursesData.length > 0) {
+            const ieSections = allCoursesData.filter(c => c.Section.endsWith('.i'));
+            
+            // Check if there are any IE sections and if the group hasn't been added yet.
+            if (ieSections.length > 0 && !requiredItems.some(item => item.id === 'group_IE_preset')) {
+                const ieCourseCodes = [...new Set(ieSections.map(c => c['Subject Code']))];
+                const ieGroup: Requirement = {
+                    id: 'group_IE_preset',
+                    type: 'group',
+                    name: 'Interdisciplinary Elective (IE)',
+                    courses: ieCourseCodes,
+                    priority: 100,
+                    excluded: false,
+                };
+                // Add the preset group to the list of requirements.
+                setRequiredItems(prev => [ieGroup, ...prev]);
+            }
+        }
+    }, [allCoursesData]); // This dependency ensures the effect runs when data arrives.
+
     const calendarEvents = useMemo(() => {
         return Object.values(selectedSections).flatMap(parseCourseToEvents);
     }, [selectedSections]);
@@ -72,7 +95,7 @@ export default function App() {
         const schedules: Schedule[] = [];
 
         function findSchedulesRecursive(reqIndex: number, currentSchedule: Schedule) {
-            if (schedules.length >= 100) return; // Limit to 100 raw schedules for performance
+            if (schedules.length >= 100) return;
 
             if (reqIndex === requirementsToSchedule.length) {
                 schedules.push({ ...currentSchedule });
@@ -93,12 +116,12 @@ export default function App() {
 
         findSchedulesRecursive(0, { ...lockedSelections });
 
-        // CORRECTED: Add de-duplication logic to ensure every schedule shown is unique.
         const uniqueSchedules: Schedule[] = [];
         const seenSchedules = new Set<string>();
 
         for (const schedule of schedules) {
-            // Create a consistent string key for each schedule based on its contents.
+            // A unique schedule is defined by the specific set of sections it contains.
+            // This key joins the requirement ID, subject code, and section for each class.
             const scheduleKey = Object.keys(schedule).sort().map(reqId => {
                 const section = schedule[reqId];
                 return `${reqId}:${section['Subject Code']}:${section.Section}`;
