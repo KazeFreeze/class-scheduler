@@ -7,13 +7,14 @@ export const getSectionTimes = (
   const timeStr = section.Time;
   if (!timeStr || String(timeStr).toLowerCase().includes("tba")) return [];
 
+  // CORRECTED: The day mapping is now more specific.
   const daysMap: { [key: string]: number } = {
     M: 1,
     T: 2,
     W: 3,
     TH: 4,
     F: 5,
-    S: 6,
+    SAT: 6,
   };
   const dayTimeParts = String(timeStr)
     .split(";")
@@ -25,23 +26,19 @@ export const getSectionTimes = (
 
     const start = parseInt(timeMatch[1], 10) * 60 + parseInt(timeMatch[2], 10);
     const end = parseInt(timeMatch[3], 10) * 60 + parseInt(timeMatch[4], 10);
-    const dayStrMatch = part.match(/^([A-Z]+)/);
+
+    const dayStrMatch = part.match(/^([A-Z\s|]+)\s\d/);
     if (!dayStrMatch) return;
 
-    const dayStr = dayStrMatch[1];
-    let i = 0;
-    while (i < dayStr.length) {
-      let dayChar = dayStr[i];
-      if (dayChar === "T" && i + 1 < dayStr.length && dayStr[i + 1] === "H") {
-        times.push({ day: daysMap["TH"], start, end });
-        i += 2;
-      } else if (daysMap[dayChar]) {
-        times.push({ day: daysMap[dayChar], start, end });
-        i += 1;
-      } else {
-        i++;
+    const dayStr = dayStrMatch[1].replace(/\|/g, "").trim();
+
+    // CORRECTED: The parsing logic now correctly handles codes like 'SAT'.
+    const dayCodes = dayStr.split(/\s+/);
+    dayCodes.forEach((code) => {
+      if (daysMap[code]) {
+        times.push({ day: daysMap[code], start, end });
       }
-    }
+    });
   });
   return times;
 };

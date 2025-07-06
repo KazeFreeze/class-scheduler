@@ -19,14 +19,14 @@ export const parseCourseToEvents = (course: CourseSection) => {
   const timeStr = course.Time;
   if (!timeStr || String(timeStr).toLowerCase().includes("tba")) return [];
 
+  // CORRECTED: The day mapping is now more specific to avoid single-letter conflicts (e.g., 'T' in 'SAT').
   const daysMap: { [key: string]: number } = {
     M: 1,
     T: 2,
     W: 3,
     TH: 4,
     F: 5,
-    S: 6,
-    H: 4,
+    SAT: 6,
   };
   const courseEvents: any[] = [];
   const dayTimeParts = String(timeStr)
@@ -39,28 +39,26 @@ export const parseCourseToEvents = (course: CourseSection) => {
 
     const startTime = `${timeMatch[1].padStart(2, "0")}:${timeMatch[2]}`;
     const endTime = `${timeMatch[3].padStart(2, "0")}:${timeMatch[4]}`;
-    const dayStrMatch = part.match(/^([A-Z]+)/);
+
+    // Extract the day part of the string, which can contain characters like '|' or spaces.
+    const dayStrMatch = part.match(/^([A-Z\s|]+)\s\d/);
     if (!dayStrMatch) return;
 
-    const dayStr = dayStrMatch[1];
+    const dayStr = dayStrMatch[1].replace(/\|/g, "").trim();
+
+    // CORRECTED: The parsing logic now checks for multi-letter day codes first.
     const days: number[] = [];
-    let i = 0;
-    while (i < dayStr.length) {
-      if (dayStr[i] === "T" && i + 1 < dayStr.length && dayStr[i + 1] === "H") {
-        days.push(daysMap["TH"]);
-        i += 2;
-      } else if (daysMap[dayStr[i]]) {
-        days.push(daysMap[dayStr[i]]);
-        i += 1;
-      } else {
-        i += 1;
+    const dayCodes = dayStr.split(/\s+/); // Split by spaces to handle multiple day codes
+    dayCodes.forEach((code) => {
+      if (daysMap[code]) {
+        days.push(daysMap[code]);
       }
-    }
+    });
 
     days.forEach((day) => {
       if (day) {
         courseEvents.push({
-          id: `${course["Subject Code"]}-${course.Section}`,
+          id: `${course["Subject Code"]}-${course.Section}-${day}`, // Add day to ID to ensure uniqueness
           title: `${course["Subject Code"]} (${course.Section})`,
           startTime: startTime,
           endTime: endTime,
