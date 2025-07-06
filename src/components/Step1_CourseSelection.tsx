@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { PlusCircle, ArrowRight, Search, X } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { PlusCircle, ArrowRight, Search } from 'lucide-react';
 import { CourseItem } from './CourseItem';
 import type { UniqueCourse, Requirement, AppStep } from '../types';
 

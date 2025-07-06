@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Download, ArrowLeft } from 'lucide-react';
-import { ics } from 'ics';
+import * as ics from 'ics';
 import type { Schedule, AppStep } from '../types';
 
 interface Props {
@@ -19,7 +19,7 @@ export const Step3_Export = ({ selectedSections, setStep }: Props) => {
         }
 
         const dayMap: { [key: string]: 'MO' | 'TU' | 'WE' | 'TH' | 'FR' | 'SA' } = { M: "MO", T: "TU", W: "WE", TH: "TH", F: "FR", S: "SA" };
-        const events: any[] = [];
+        const events: ics.EventAttributes[] = [];
 
         Object.values(selectedSections).forEach(section => {
             const timeStr = section.Time;
@@ -54,12 +54,15 @@ export const Step3_Export = ({ selectedSections, setStep }: Props) => {
                 }
 
                 if (days.length > 0) {
+                    const startArr = startDate.split('-').map(Number);
+                    const endArr = endDate.split('-').map(Number);
+                    
                     events.push({
                         title: `${section["Subject Code"]} (${section.Section})`,
                         description: `${section["Course Title"]}\nInstructor: ${section.Instructor}`,
                         location: section.Room,
-                        start: [parseInt(startDate.split('-')[0]), parseInt(startDate.split('-')[1]), parseInt(startDate.split('-')[2]), parseInt(startHour), parseInt(startMinute)],
-                        end: [parseInt(startDate.split('-')[0]), parseInt(startDate.split('-')[1]), parseInt(startDate.split('-')[2]), parseInt(endHour), parseInt(endMinute)],
+                        start: [startArr[0], startArr[1], startArr[2], parseInt(startHour), parseInt(startMinute)],
+                        end: [startArr[0], startArr[1], startArr[2], parseInt(endHour), parseInt(endMinute)],
                         recurrenceRule: `FREQ=WEEKLY;BYDAY=${days.join(',')};UNTIL=${endDate.replace(/-/g, '')}T235959Z`,
                     });
                 }
@@ -73,13 +76,15 @@ export const Step3_Export = ({ selectedSections, setStep }: Props) => {
             return;
         }
 
-        const blob = new Blob([value || ''], { type: 'text/calendar;charset=utf-8' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = 'My-Schedule.ics';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        if (value) {
+            const blob = new Blob([value], { type: 'text/calendar;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'My-Schedule.ics';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     };
 
     return (
