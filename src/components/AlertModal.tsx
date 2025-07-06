@@ -1,4 +1,4 @@
-import { X, Info } from 'lucide-react';
+import { Info } from 'lucide-react';
 
 interface Props {
     isOpen: boolean;
