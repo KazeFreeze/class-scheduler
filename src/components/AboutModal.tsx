@@ -11,7 +11,8 @@ const YOUR_NAME = "Bernard G. Tapiru, Jr.";
 const YOUR_BIO = "BS EcE major passionate about useful tech tools - software and hardware. This class scheduler was a fun project to help students organize their academic schedules.";
 const GITHUB_LINK = "https://github.com/kazefreeze/";
 const COFFEE_LINK = "https://buymeacoffee.com/bunad";
-const GCASH_DETAILS = "GCash: 09352273278 (B. Tapiru)";
+// The path to the QR code image in the 'public' folder.
+const GCASH_QR_CODE_PATH = "/gcash-qr.jpg";
 
 
 export const AboutModal = ({ isOpen, onClose }: Props) => {
@@ -58,8 +59,9 @@ export const AboutModal = ({ isOpen, onClose }: Props) => {
                             <span>Buy me a coffee (GCash)</span>
                         </button>
                         {showGcash && (
-                            <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-center">
-                                <p className="font-semibold text-blue-800">{GCASH_DETAILS}</p>
+                            <div className="mt-2 p-4 bg-gray-50 border rounded-lg flex flex-col items-center">
+                                <p className="text-sm text-gray-600 mb-2">Scan the QR code with your GCash app.</p>
+                                <img src={GCASH_QR_CODE_PATH} alt="GCash QR Code" className="w-48 h-48 object-contain rounded-md" />
                             </div>
                         )}
                     </div>

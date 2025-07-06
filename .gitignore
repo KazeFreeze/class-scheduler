@@ -90,8 +90,6 @@ dist
 
 # Gatsby files
 .cache/
-# Add any Gatsby specific files which might contain sensitive data
-public
 
 # SvelteKit build output
 .svelte-kit
