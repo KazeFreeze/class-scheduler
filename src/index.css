@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: "Inter", sans-serif;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #d1d5db; /* gray-300 */
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af; /* gray-400 */
+}
+
+/* FullCalendar Overrides */
+.fc .fc-toolbar-title {
+  font-size: 1.25rem !important;
+}
+.fc .fc-col-header-cell-cushion {
+  text-decoration: none !important;
+  color: #374151 !important; /* gray-700 */
+}
+.fc-event {
+  border-radius: 4px !important;
+  padding: 4px 6px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+}
+.fc-event-main {
+  font-size: 0.8rem !important;
+}
+.fc-v-event .fc-event-title {
+  white-space: normal !important;
+}
+.fc-theme-standard td,
+.fc-theme-standard th {
+  border-color: #e5e7eb !important; /* gray-200 */
+}
