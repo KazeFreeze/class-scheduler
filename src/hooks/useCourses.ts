@@ -31,6 +31,7 @@ export const useCourses = () => {
         const data = await response.json();
 
         // Process fetched courses to add default client-side properties
+        // CORRECTED: Reads "Slots" with a capital 'S' to match the incoming JSON data.
         const coursesWithDefaults = data.courses.map(
           (c: any): CourseSection => ({
             ...c,

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { PlusCircle, ArrowRight, Search, Settings, ShieldOff } from 'lucide-react';
+import { PlusCircle, ArrowRight, Search } from 'lucide-react';
 import { CourseItem } from './CourseItem';
 import type { UniqueCourse, Requirement, AppStep } from '../types';
 
@@ -14,14 +14,15 @@ interface Props {
 export const Step1_CourseSelection = ({ uniqueCourses, requiredItems, setRequiredItems, setStep, openGroupModal }: Props) => {
     const [searchTerm, setSearchTerm] = useState("");
 
-    // Adds a new course requirement with default priority and exclusion
+    // Adds a new course requirement with default priority and exclusion.
+    // These controls are now hidden from the user in this step.
     const handleSelectCourse = (courseCode: string) => {
         const newReq: Requirement = { 
             id: courseCode, 
             type: 'course', 
             name: courseCode,
-            priority: 100, // Default priority
-            excluded: false, // Default exclusion
+            priority: 100, // Default priority, to be edited in Step 2
+            excluded: false, 
         };
         setRequiredItems(prev => [...prev, newReq]);
     };
@@ -29,13 +30,6 @@ export const Step1_CourseSelection = ({ uniqueCourses, requiredItems, setRequire
     // Removes a requirement from the list
     const handleRemoveItem = (itemId: string) => {
         setRequiredItems(prev => prev.filter(item => item.id !== itemId));
-    };
-
-    // Updates a property (like priority or exclusion) of a requirement
-    const handleUpdateItem = (itemId: string, updates: Partial<Requirement>) => {
-        setRequiredItems(prev => 
-            prev.map(item => item.id === itemId ? { ...item, ...updates } : item)
-        );
     };
 
     const filteredAndSortedCourses = useMemo(() => {
@@ -64,49 +58,35 @@ export const Step1_CourseSelection = ({ uniqueCourses, requiredItems, setRequire
                 />
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
             </div>
-            <div className="flex-grow space-y-3 pr-2 overflow-y-auto">
-                {/* Render selected courses with their controls */}
+            <div className="flex-grow space-y-2 pr-2 overflow-y-auto">
+                {/* Render selected courses (without extra controls) */}
                 {requiredItems.map(item => {
                     const course = item.type === 'course' ? uniqueCourses.get(item.id) : { code: item.name, title: `Group: ${item.courses?.join(', ')}` };
                     if (!course) return null;
                     return (
-                        <div key={item.id} className="bg-blue-50 border border-blue-200 rounded-lg p-3 transition-all">
-                            <CourseItem course={course} isSelected={true} isGroup={item.type === 'group'} onSelect={() => {}} onRemove={() => handleRemoveItem(item.id)} />
-                            <div className="mt-3 flex flex-col sm:flex-row items-center gap-4 text-sm">
-                                <div className="flex items-center gap-2">
-                                    <Settings size={16} className="text-gray-600" />
-                                    <label htmlFor={`priority-${item.id}`} className="font-medium text-gray-700">Priority:</label>
-                                    <input
-                                        type="number"
-                                        id={`priority-${item.id}`}
-                                        title="Set course priority (1 is highest)"
-                                        value={item.priority}
-                                        onChange={e => handleUpdateItem(item.id, { priority: parseInt(e.target.value) || 100 })}
-                                        className="w-16 p-1 border rounded-md text-center"
-                                    />
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <ShieldOff size={16} className="text-gray-600" />
-                                    <label htmlFor={`exclude-${item.id}`} className="font-medium text-gray-700">Exclude:</label>
-                                    <input
-                                        type="checkbox"
-                                        id={`exclude-${item.id}`}
-                                        title="Exclude this course from auto-scheduling"
-                                        checked={item.excluded}
-                                        onChange={e => handleUpdateItem(item.id, { excluded: e.target.checked })}
-                                        className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                    />
-                                </div>
-                            </div>
-                        </div>
+                        <CourseItem 
+                            key={item.id} 
+                            course={course} 
+                            isSelected={true} 
+                            isGroup={item.type === 'group'} 
+                            onSelect={() => {}} 
+                            onRemove={() => handleRemoveItem(item.id)} 
+                        />
                     );
                 })}
                 
-                <hr className="my-3 border-dashed" />
+                <hr className="my-2 border-dashed" />
 
                 {/* Render available courses */}
                 {filteredAndSortedCourses.map(course => (
-                    <CourseItem key={course.code} course={course} isSelected={false} isGroup={false} onSelect={handleSelectCourse} onRemove={() => {}} />
+                    <CourseItem 
+                        key={course.code} 
+                        course={course} 
+                        isSelected={false} 
+                        isGroup={false} 
+                        onSelect={handleSelectCourse} 
+                        onRemove={() => {}} 
+                    />
                 ))}
             </div>
             <div className="mt-4 pt-4 border-t border-gray-200 flex-shrink-0 flex flex-col gap-2">
@@ -114,7 +94,7 @@ export const Step1_CourseSelection = ({ uniqueCourses, requiredItems, setRequire
                     <PlusCircle size={16} />Create Custom Group
                 </button>
                 <button onClick={() => setStep(2)} disabled={requiredItems.length === 0} className="w-full bg-blue-600 text-white py-2.5 px-4 rounded-md hover:bg-blue-700 font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                    Next: Choose Sections <ArrowRight size={16} />
+                    Next: Configure Schedule <ArrowRight size={16} />
                 </button>
             </div>
         </div>

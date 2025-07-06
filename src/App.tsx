@@ -13,8 +13,6 @@ import { GroupModal } from './components/GroupModal';
 import type { Requirement, Schedule, AppStep, CourseSection } from './types';
 
 export default function App() {
-    // The useCourses hook is the single source of truth for course data.
-    // `allCoursesData` and `setAllCoursesData` are now used directly from the hook.
     const { allCoursesData, setAllCoursesData, uniqueCourses, loading, error } = useCourses();
     
     const [step, setStep] = useState<AppStep>(1);
@@ -25,39 +23,29 @@ export default function App() {
     const [generatedSchedules, setGeneratedSchedules] = useState<Schedule[]>([]);
     const [currentScheduleIndex, setCurrentScheduleIndex] = useState(0);
 
-    // This useEffect is no longer needed as we use the state from the hook directly.
-
-    // Memoized calendar events derived from the currently selected sections
     const calendarEvents = useMemo(() => {
         return Object.values(selectedSections).flatMap(parseCourseToEvents);
     }, [selectedSections]);
 
-    // Handler to save a new group of courses
     const handleSaveGroup = (groupName: string, courseCodes: string[]) => {
         const newGroup: Requirement = {
             id: `group_${Date.now()}`,
             type: 'group',
             name: groupName,
             courses: courseCodes,
-            priority: 100, // Default priority for new groups
+            priority: 100,
             excluded: false,
         };
         setRequiredItems(prev => [...prev, newGroup]);
     };
     
-    /**
-     * The core auto-scheduling logic.
-     * This function now respects course/section priorities and exclusions.
-     */
     const runAutoScheduler = () => {
-        // Separate locked sections from those that need scheduling
         const lockedSelections: Schedule = {};
         const requirementsToSchedule: Requirement[] = [];
 
         requiredItems.forEach(req => {
-            // Exclude requirements the user has toggled off
-            if (req.excluded) return;
-
+            // Course-level exclusion is now handled by the scheduler logic,
+            // but we still respect the `isLocked` property for manual selections.
             const selected = selectedSections[req.id];
             if (selected && selected.isLocked) {
                 lockedSelections[req.id] = selected;
@@ -66,10 +54,9 @@ export default function App() {
             }
         });
 
-        // Sort requirements by priority (lower number = higher priority)
+        // 1. Sort requirements by their overall priority (course-level)
         requirementsToSchedule.sort((a, b) => a.priority - b.priority);
         
-        // Helper to get all possible sections for a requirement
         const getSectionsForId = (id: string): CourseSection[] => {
             const item = requiredItems.find(r => r.id === id);
             if (!item) return [];
@@ -77,15 +64,14 @@ export default function App() {
             return allCoursesData.filter(c => courseCodes?.includes(c["Subject Code"]));
         };
         
-        // Pre-process and store valid, sorted sections for each requirement
         const sectionsByRequirement = new Map<string, CourseSection[]>();
         requirementsToSchedule.forEach(req => {
             const possibleSections = getSectionsForId(req.id);
             
-            // Filter out sections that are excluded or have no slots
+            // Filter out sections that are explicitly excluded by the user or have no slots
             const validSections = possibleSections.filter(sec => !sec.excluded && sec.Slots > 0);
             
-            // Sort the valid sections by their individual priority
+            // 2. Sort the valid sections by their individual priority
             validSections.sort((a, b) => a.priority - b.priority);
 
             sectionsByRequirement.set(req.id, validSections);
@@ -93,11 +79,9 @@ export default function App() {
 
         const schedules: Schedule[] = [];
 
-        // Recursive function to find valid schedule combinations
         function findSchedulesRecursive(reqIndex: number, currentSchedule: Schedule) {
-            if (schedules.length >= 50) return; // Limit to 50 schedules for performance
+            if (schedules.length >= 50) return;
 
-            // If all requirements are scheduled, save the result
             if (reqIndex === requirementsToSchedule.length) {
                 schedules.push({ ...currentSchedule });
                 return;
@@ -106,13 +90,11 @@ export default function App() {
             const req = requirementsToSchedule[reqIndex];
             const possibleSections = sectionsByRequirement.get(req.id) || [];
 
-            // Iterate through the pre-sorted, valid sections
             for (const section of possibleSections) {
                 if (!checkForConflict(section, currentSchedule, req.id)) {
                     currentSchedule[req.id] = section;
                     findSchedulesRecursive(reqIndex + 1, currentSchedule);
-                    // Backtrack
-                    delete currentSchedule[req.id];
+                    delete currentSchedule[req.id]; // Backtrack
                 }
             }
         }
@@ -125,19 +107,17 @@ export default function App() {
             setSelectedSections(schedules[0]);
             alert(`Successfully generated ${schedules.length} possible schedules!`);
         } else {
-            setSelectedSections(lockedSelections); // Revert to only locked sections
+            setSelectedSections(lockedSelections);
             alert("Could not find any valid schedule with the given constraints and priorities.");
         }
     };
     
-    // Effect to update the displayed schedule when the user navigates through generated options
     useEffect(() => {
         if (generatedSchedules.length > 0) {
             setSelectedSections(generatedSchedules[currentScheduleIndex]);
         }
     }, [currentScheduleIndex, generatedSchedules]);
     
-    // Effect to clean up state when requirements change
     useEffect(() => {
         setGeneratedSchedules([]);
         setCurrentScheduleIndex(0);
@@ -159,8 +139,20 @@ export default function App() {
             case 1:
                 return <Step1_CourseSelection uniqueCourses={uniqueCourses} requiredItems={requiredItems} setRequiredItems={setRequiredItems} setStep={setStep} openGroupModal={() => setGroupModalOpen(true)} />;
             case 2:
-                // Pass down allCoursesData and its setter to allow modifications
-                return <Step2_SelectSections allCoursesData={allCoursesData} setAllCoursesData={setAllCoursesData} requiredItems={requiredItems} selectedSections={selectedSections} setSelectedSections={setSelectedSections} setStep={setStep} runAutoScheduler={runAutoScheduler} generatedSchedules={generatedSchedules} currentScheduleIndex={currentScheduleIndex} setCurrentScheduleIndex={setCurrentScheduleIndex} />;
+                // Pass down all required state and setters to Step 2
+                return <Step2_SelectSections 
+                    allCoursesData={allCoursesData} 
+                    setAllCoursesData={setAllCoursesData} 
+                    requiredItems={requiredItems} 
+                    setRequiredItems={setRequiredItems}
+                    selectedSections={selectedSections} 
+                    setSelectedSections={setSelectedSections} 
+                    setStep={setStep} 
+                    runAutoScheduler={runAutoScheduler} 
+                    generatedSchedules={generatedSchedules} 
+                    currentScheduleIndex={currentScheduleIndex} 
+                    setCurrentScheduleIndex={setCurrentScheduleIndex} 
+                />;
             case 3:
                 return <Step3_Export selectedSections={selectedSections} setStep={setStep} />;
             default:
@@ -169,8 +161,8 @@ export default function App() {
     };
     
     const subtitleText: { [key in AppStep]: string } = {
-        1: "Step 1: Select courses and set priorities.",
-        2: "Step 2: Fine-tune sections or auto-schedule.",
+        1: "Step 1: Select your required courses.",
+        2: "Step 2: Set priorities and schedule.",
         3: "Step 3: Finalize and export your schedule."
     }
 

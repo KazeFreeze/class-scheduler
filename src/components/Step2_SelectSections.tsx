@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { ArrowRight, ArrowLeft, Wand2, ChevronUp, ChevronDown } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Wand2, ChevronUp, ChevronDown, Settings } from 'lucide-react';
 import { SectionItem } from './SectionItem';
 import { checkForConflict } from '../utils/schedulerUtils';
 import type { CourseSection, Requirement, Schedule, AppStep } from '../types';
@@ -8,6 +8,7 @@ interface Props {
     allCoursesData: CourseSection[];
     setAllCoursesData: React.Dispatch<React.SetStateAction<CourseSection[]>>;
     requiredItems: Requirement[];
+    setRequiredItems: React.Dispatch<React.SetStateAction<Requirement[]>>;
     selectedSections: Schedule;
     setSelectedSections: React.Dispatch<React.SetStateAction<Schedule>>;
     setStep: (step: AppStep) => void;
@@ -17,11 +18,9 @@ interface Props {
     setCurrentScheduleIndex: React.Dispatch<React.SetStateAction<number>>;
 }
 
-export const Step2_SelectSections = ({ allCoursesData, setAllCoursesData, requiredItems, selectedSections, setSelectedSections, setStep, runAutoScheduler, generatedSchedules, currentScheduleIndex, setCurrentScheduleIndex }: Props) => {
-    // State to manage which requirement accordions are expanded
+export const Step2_SelectSections = ({ allCoursesData, setAllCoursesData, requiredItems, setRequiredItems, selectedSections, setSelectedSections, setStep, runAutoScheduler, generatedSchedules, currentScheduleIndex, setCurrentScheduleIndex }: Props) => {
     const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(requiredItems.map(r => r.id)));
 
-    // Memoized function to get all sections for a given requirement ID
     const getSectionsForId = useCallback((id: string): CourseSection[] => {
         const item = requiredItems.find(r => r.id === id);
         if (!item) return [];
@@ -29,12 +28,10 @@ export const Step2_SelectSections = ({ allCoursesData, setAllCoursesData, requir
         return allCoursesData.filter(c => courseCodes?.includes(c["Subject Code"]));
     }, [requiredItems, allCoursesData]);
     
-    // Toggles a section's selection status and locks it for the scheduler
     const handleToggleSection = (requirementId: string, section: CourseSection, isSelected: boolean) => {
         setSelectedSections(prev => {
             const newSelections = { ...prev };
             if (isSelected) {
-                // When a user manually selects a section, it's marked as 'locked'
                 newSelections[requirementId] = { ...section, isLocked: true };
             } else {
                 delete newSelections[requirementId];
@@ -43,7 +40,6 @@ export const Step2_SelectSections = ({ allCoursesData, setAllCoursesData, requir
         });
     };
 
-    // Updates a property (e.g., priority, excluded) on a specific section
     const handleUpdateSection = (sectionToUpdate: CourseSection, updates: Partial<CourseSection>) => {
         setAllCoursesData(prevData =>
             prevData.map(sec => 
@@ -53,16 +49,18 @@ export const Step2_SelectSections = ({ allCoursesData, setAllCoursesData, requir
             )
         );
     };
+
+    const handleUpdateRequirement = (itemId: string, updates: Partial<Requirement>) => {
+        setRequiredItems(prev => 
+            prev.map(item => item.id === itemId ? { ...item, ...updates } : item)
+        );
+    };
     
-    // Toggles the accordion view for a requirement
     const toggleExpand = (id: string) => {
         setExpandedItems(prev => {
             const newSet = new Set(prev);
-            if (newSet.has(id)) {
-                newSet.delete(id);
-            } else {
-                newSet.add(id);
-            }
+            if (newSet.has(id)) newSet.delete(id);
+            else newSet.add(id);
             return newSet;
         });
     };
@@ -75,15 +73,28 @@ export const Step2_SelectSections = ({ allCoursesData, setAllCoursesData, requir
                     const isExpanded = expandedItems.has(item.id);
                     return (
                         <div key={item.id} className="bg-gray-50 rounded-lg border">
-                            <div className="p-3 cursor-pointer flex justify-between items-center" onClick={() => toggleExpand(item.id)}>
-                                <h3 className="font-bold text-lg">{item.name}</h3>
-                                {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                            <div className="p-3 border-b">
+                                <div className="flex justify-between items-center cursor-pointer" onClick={() => toggleExpand(item.id)}>
+                                    <h3 className="font-bold text-lg flex-grow">{item.name}</h3>
+                                    {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                                </div>
+                                <div className="mt-3 flex items-center gap-2 text-sm">
+                                    <Settings size={16} className="text-gray-600" />
+                                    <label htmlFor={`req-priority-${item.id}`} className="font-medium text-gray-700">Course Priority:</label>
+                                    <input
+                                        type="number"
+                                        id={`req-priority-${item.id}`}
+                                        title="Set overall priority for this course requirement (1 is highest)"
+                                        value={item.priority}
+                                        onChange={e => handleUpdateRequirement(item.id, { priority: parseInt(e.target.value) || 100 })}
+                                        className="w-20 p-1 border rounded-md text-center"
+                                    />
+                                </div>
                             </div>
                             {isExpanded && (
-                                <div className="space-y-2 p-3 border-t">
+                                <div className="space-y-2 p-3">
                                     {sections.length > 0 ? sections.map(section => {
                                         const isSelected = selectedSections[item.id]?.Section === section.Section && selectedSections[item.id]?.["Subject Code"] === section["Subject Code"];
-                                        // Check for conflicts only if this section isn't the one already selected
                                         const conflictingSection = !isSelected ? checkForConflict(section, selectedSections, item.id) : null;
                                         const conflictText = conflictingSection ? `Conflicts with ${conflictingSection["Subject Code"]} (${conflictingSection.Section})` : '';
                                         return (
@@ -97,7 +108,7 @@ export const Step2_SelectSections = ({ allCoursesData, setAllCoursesData, requir
                                                 onUpdate={(updates) => handleUpdateSection(section, updates)}
                                             />
                                         );
-                                    }) : <p className="text-sm text-gray-500 text-center p-4">No sections available for this course/group.</p>}
+                                    }) : <p className="text-sm text-gray-500 text-center p-4">No sections available.</p>}
                                 </div>
                             )}
                         </div>
