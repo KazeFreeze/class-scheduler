@@ -16,44 +16,49 @@
     <div class="flex h-screen overflow-hidden">
         <!-- Sidebar -->
         <aside class="w-1/3 max-w-lg bg-white border-r border-gray-200 flex flex-col">
-            <div class="p-4 border-b border-gray-200">
+            <div class="p-4 border-b border-gray-200 flex-shrink-0">
                 <h1 class="text-2xl font-bold">Class Planner</h1>
-                <p class="text-sm text-gray-500">Build your ideal schedule.</p>
+                <p id="sidebar-subtitle" class="text-sm text-gray-500">Step 1: Select your required courses.</p>
             </div>
 
-            <!-- Top Half: Course Selection -->
-            <div class="flex-1 flex flex-col p-4 border-b border-gray-200 overflow-y-auto">
-                <h2 class="text-lg font-semibold mb-3">1. Select Required Courses</h2>
+            <!-- Step 1: Course Selection View -->
+            <div id="sidebar-step-1" class="flex-1 flex flex-col p-4 overflow-y-auto">
                 <div class="relative mb-3">
                     <input type="text" id="available-course-search" placeholder="Search available courses..." class="w-full p-2 pl-8 border rounded-md">
                     <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"></i>
                 </div>
-                <div id="available-courses-list" class="flex-grow overflow-y-auto space-y-2 pr-2">
+                <div id="available-courses-list" class="flex-grow space-y-2 pr-2">
                     <!-- Available course codes will be dynamically added here -->
                 </div>
-                <div class="mt-4 flex-shrink-0">
+                <div class="mt-4 pt-4 border-t border-gray-200 flex-shrink-0 flex flex-col gap-2">
                      <button id="create-group-btn" class="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 text-sm font-medium">
                         <i class="fas fa-plus-circle mr-2"></i>Create Custom Group
+                    </button>
+                    <button id="next-step-btn" class="w-full bg-blue-600 text-white py-2.5 px-4 rounded-md hover:bg-blue-700 font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed">
+                        Next: Choose Sections <i class="fas fa-arrow-right ml-2"></i>
                     </button>
                 </div>
             </div>
 
-            <!-- Bottom Half: Section Selection -->
-            <div class="flex-1 flex flex-col p-4 overflow-y-auto">
-                <div class="flex justify-between items-center mb-3">
-                    <h2 class="text-lg font-semibold">2. Choose Sections</h2>
-                     <button id="auto-schedule-btn" class="bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 font-semibold flex items-center justify-center gap-2 text-sm disabled:bg-gray-400" disabled>
-                        <i class="fas fa-magic"></i> Auto-Schedule
+            <!-- Step 2: Section Selection View (Initially Hidden) -->
+            <div id="sidebar-step-2" class="flex-1 flex flex-col p-4 overflow-y-auto hidden">
+                 <div class="flex-shrink-0 mb-4">
+                    <button id="back-step-btn" class="w-full text-center text-blue-600 hover:underline font-medium py-2">
+                        <i class="fas fa-arrow-left mr-2"></i> Back to Course Selection
                     </button>
                 </div>
                 <div id="required-courses-container" class="flex-grow overflow-y-auto pr-2">
-                    <p class="text-center text-gray-500 pt-8">Select a course from the list above to see its sections.</p>
                     <!-- Sections for the selected course/group will appear here -->
                 </div>
-                 <div id="schedule-actions" class="mt-4 flex justify-between items-center hidden">
-                     <button id="prev-btn" class="text-gray-500 hover:text-gray-800 p-2 rounded-full"><i class="fas fa-arrow-left"></i></button>
-                     <span id="schedule-counter" class="text-sm font-medium text-gray-700"></span>
-                     <button id="next-btn" class="text-gray-500 hover:text-gray-800 p-2 rounded-full"><i class="fas fa-arrow-right"></i></button>
+                 <div class="mt-4 pt-4 border-t border-gray-200 flex-shrink-0 flex flex-col gap-2">
+                     <button id="auto-schedule-btn" class="w-full bg-green-500 text-white py-2.5 px-4 rounded-md hover:bg-green-600 font-semibold flex items-center justify-center gap-2 text-sm disabled:bg-gray-400">
+                        <i class="fas fa-magic"></i> Auto-Schedule
+                    </button>
+                    <div id="schedule-actions" class="mt-2 flex justify-between items-center hidden">
+                         <button id="prev-btn" class="text-gray-500 hover:text-gray-800 p-2 rounded-full"><i class="fas fa-arrow-left"></i></button>
+                         <span id="schedule-counter" class="text-sm font-medium text-gray-700"></span>
+                         <button id="next-btn" class="text-gray-500 hover:text-gray-800 p-2 rounded-full"><i class="fas fa-arrow-right"></i></button>
+                    </div>
                 </div>
             </div>
         </aside>
@@ -74,25 +79,26 @@
 
     <!-- Modals -->
     <div id="group-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 flex flex-col">
-            <div class="flex justify-between items-center mb-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 flex flex-col" style="height: 90vh; max-height: 700px;">
+            <div class="flex justify-between items-center mb-4 flex-shrink-0">
                 <h3 class="text-xl font-semibold">Create a Custom Group</h3>
-                <button id="close-group-modal-btn" class="text-gray-500 hover:text-gray-800">&times;</button>
+                <button id="close-group-modal-btn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
             </div>
-            <input type="text" id="group-name-input" placeholder="Enter group name (e.g., 'Humanities Elective')" class="w-full p-2 border rounded-md mb-4">
+            <input type="text" id="group-name-input" placeholder="Enter group name (e.g., 'Humanities Elective')" class="w-full p-2 border rounded-md mb-4 flex-shrink-0">
             <div class="flex gap-4 flex-grow min-h-0">
                 <!-- Left side: Search and add courses -->
                 <div class="w-1/2 flex flex-col">
-                    <input type="text" id="group-course-search" placeholder="Search courses to add..." class="w-full p-2 border rounded-md mb-4">
+                    <h4 class="font-semibold mb-2 flex-shrink-0">Available Courses</h4>
+                    <input type="text" id="group-course-search" placeholder="Search courses to add..." class="w-full p-2 border rounded-md mb-2 flex-shrink-0">
                     <div id="group-modal-search-results" class="flex-grow overflow-y-auto border rounded-md p-2"></div>
                 </div>
                 <!-- Right side: View courses in the group -->
                 <div class="w-1/2 flex flex-col">
-                    <h4 class="font-semibold mb-4">Courses in this Group (<span id="group-item-count">0</span>)</h4>
+                    <h4 class="font-semibold mb-2 flex-shrink-0">Courses in this Group (<span id="group-item-count">0</span>)</h4>
                     <div id="group-modal-selected-list" class="flex-grow overflow-y-auto border rounded-md p-2 space-y-2"></div>
                 </div>
             </div>
-            <div class="mt-6 flex justify-end gap-2">
+            <div class="mt-6 flex justify-end gap-2 flex-shrink-0">
                 <button id="cancel-group-btn" class="bg-gray-200 text-gray-700 py-2 px-4 rounded-md">Cancel</button>
                 <button id="save-group-btn" class="bg-blue-500 text-white py-2 px-4 rounded-md">Save Group</button>
             </div>

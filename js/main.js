@@ -5,27 +5,21 @@ import {
   removeEventFromCalendar,
 } from "./calendar.js";
 
-/**
- * For a more complex application, consider using a lightweight state management library
- * like Zustand or a full UI framework like React or Vue to handle state-driven UI updates
- * more efficiently than manual DOM manipulation.
- */
 document.addEventListener("DOMContentLoaded", () => {
   // --- STATE MANAGEMENT ---
   let allCoursesData = [];
   let uniqueCourses = new Map();
-
-  // Key: courseCode or groupID, Value: { id, type, name, priority, courses?, isExpanded?, sections? }
   let requiredItems = new Map();
-
-  // Key: courseCode or groupID, Value: sectionObject
   let selectedSections = new Map();
-  let activeSelectionId = null;
   let generatedSchedules = [];
   let currentScheduleIndex = 0;
-  let currentStep = 1; // 1: Select Courses, 2: Select Sections
+  let currentStep = 1; // Start at Step 1
 
   // --- UI ELEMENTS ---
+  const sidebarStep1 = document.getElementById("sidebar-step-1");
+  const sidebarStep2 = document.getElementById("sidebar-step-2");
+  const sidebarSubtitle = document.getElementById("sidebar-subtitle");
+
   const availableCourseSearch = document.getElementById(
     "available-course-search"
   );
@@ -35,8 +29,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const requiredCoursesContainer = document.getElementById(
     "required-courses-container"
   );
+
   const createGroupBtn = document.getElementById("create-group-btn");
   const autoScheduleBtn = document.getElementById("auto-schedule-btn");
+  const nextStepBtn = document.getElementById("next-step-btn");
+  const backStepBtn = document.getElementById("back-step-btn");
 
   // Group Modal Elements
   const groupModal = document.getElementById("group-modal");
@@ -66,7 +63,7 @@ document.addEventListener("DOMContentLoaded", () => {
         excluded: false,
       }));
       processCourseData();
-      renderSidebar();
+      renderSidebar(); // Initial render
     } catch (error) {
       console.error("Error fetching courses:", error);
       availableCoursesList.innerHTML = `<p class="text-red-500">Failed to load course data.</p>`;
@@ -87,18 +84,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
   fetchAndInitialize();
 
-  // --- MAIN RENDER FUNCTION ---
+  // --- MAIN RENDER FUNCTION (VIEW ROUTER) ---
   function renderSidebar() {
-    // Hide all view containers and then show the correct one
-    document.querySelector(".p-4.flex-1.flex.flex-col").style.display =
-      currentStep === 1 ? "flex" : "none";
-    document.querySelector(
-      ".p-4.flex-1.flex.flex-col.overflow-y-auto"
-    ).style.display = currentStep === 2 ? "flex" : "none";
-
     if (currentStep === 1) {
+      sidebarSubtitle.textContent = "Step 1: Select your required courses.";
+      sidebarStep1.classList.remove("hidden");
+      sidebarStep2.classList.add("hidden");
       renderStep1_SelectCourses();
     } else {
+      // currentStep === 2
+      sidebarSubtitle.textContent = "Step 2: Choose sections for each course.";
+      sidebarStep1.classList.add("hidden");
+      sidebarStep2.classList.remove("hidden");
       renderStep2_SelectSections();
     }
     updateAutoScheduleButton();
@@ -106,12 +103,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- STEP 1 RENDER ---
   function renderStep1_SelectCourses(filter = "") {
-    const courseListContainer = document.getElementById(
-      "available-courses-list"
-    );
-    courseListContainer.innerHTML = "";
+    availableCoursesList.innerHTML = "";
 
-    // Render selected items first
+    // Render selected items at the top
     requiredItems.forEach((item) => {
       const course = uniqueCourses.get(item.id) || {
         code: item.name,
@@ -119,21 +113,21 @@ document.addEventListener("DOMContentLoaded", () => {
       };
       const isGroup = item.type === "group";
       const itemEl = document.createElement("div");
-      itemEl.className = `available-course-item ${
+      itemEl.className = `available-course-item p-3 ${
         isGroup ? "selected-group" : "selected"
       }`;
       itemEl.dataset.id = item.id;
       itemEl.innerHTML = `
-              <div>
-                  <p class="font-medium">${course.code}</p>
-                  <p class="text-xs">${course.title}</p>
+              <div class="flex-grow">
+                  <p class="font-semibold">${course.code}</p>
+                  <p class="text-xs text-gray-600">${course.title}</p>
               </div>
-              <button class="text-red-500 hover:text-red-700 remove-course-btn" data-id="${item.id}">&times;</button>
+              <button class="remove-course-btn text-red-500 hover:text-red-700 text-xl font-bold p-2" data-id="${item.id}" title="Remove ${course.code}">&times;</button>
           `;
-      courseListContainer.appendChild(itemEl);
+      availableCoursesList.prepend(itemEl);
     });
 
-    // Render unselected items
+    // Render unselected, filtered items
     const sortedCourses = [...uniqueCourses.values()].sort((a, b) =>
       a.code.localeCompare(b.code)
     );
@@ -146,57 +140,33 @@ document.addEventListener("DOMContentLoaded", () => {
 
     filteredCourses.forEach((course) => {
       const item = document.createElement("div");
-      item.className = `available-course-item`;
+      item.className = `available-course-item p-3`;
       item.dataset.courseCode = course.code;
       item.innerHTML = `
-              <div>
+              <div class="flex-grow">
                   <p class="font-medium">${course.code}</p>
                   <p class="text-xs">${course.title}</p>
               </div>
-              <i class="fas fa-plus text-lg"></i>
+              <i class="fas fa-plus text-lg text-blue-500"></i>
           `;
-      item.addEventListener("click", () => toggleRequiredCourse(course.code));
-      courseListContainer.appendChild(item);
+      availableCoursesList.appendChild(item);
     });
 
-    // Add Next Step button if needed
-    let nextButton = document.getElementById("next-step-btn");
-    if (!nextButton) {
-      nextButton = document.createElement("button");
-      nextButton.id = "next-step-btn";
-      nextButton.className =
-        "w-full mt-4 bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 disabled:bg-gray-400";
-      nextButton.textContent = "Next Step: Choose Sections";
-      nextButton.addEventListener("click", () => {
-        currentStep = 2;
-        renderSidebar();
-      });
-      courseListContainer.parentElement.appendChild(nextButton);
-    }
-    nextButton.disabled = requiredItems.size === 0;
+    nextStepBtn.disabled = requiredItems.size === 0;
   }
 
   // --- STEP 2 RENDER ---
   function renderStep2_SelectSections() {
     requiredCoursesContainer.innerHTML = ""; // Clear previous content
 
-    const backButton = document.createElement("button");
-    backButton.className = "mb-4 text-blue-500 hover:underline";
-    backButton.innerHTML = "&larr; Back to Course Selection";
-    backButton.addEventListener("click", () => {
-      currentStep = 1;
-      renderSidebar();
-    });
-    requiredCoursesContainer.appendChild(backButton);
-
     requiredItems.forEach((item) => {
       const container = document.createElement("div");
-      container.className = "mb-4";
+      container.className = "mb-4 bg-gray-50 rounded-lg border";
 
       const isExpanded = item.isExpanded === undefined ? true : item.isExpanded;
 
       container.innerHTML = `
-              <div class="required-course-header cursor-pointer flex justify-between items-center" data-id="${
+              <div class="required-course-header p-3 cursor-pointer flex justify-between items-center" data-id="${
                 item.id
               }">
                   <h3 class="font-bold text-lg">${item.name}</h3>
@@ -207,7 +177,7 @@ document.addEventListener("DOMContentLoaded", () => {
           `;
 
       const sectionList = document.createElement("div");
-      sectionList.className = "space-y-2 mt-2 pl-4 border-l-2 border-gray-200";
+      sectionList.className = "section-list-container space-y-2 p-3";
       if (!isExpanded) {
         sectionList.classList.add("hidden");
       }
@@ -215,37 +185,40 @@ document.addEventListener("DOMContentLoaded", () => {
       const sections = getSectionsForId(item.id);
       const currentlySelectedSection = selectedSections.get(item.id);
 
-      sections.forEach((section) => {
-        const sectionId = `${section["Subject Code"]}-${section.Section}`;
-        const isSelected =
-          currentlySelectedSection &&
-          currentlySelectedSection.Section === section.Section;
-        const isConflict = !isSelected && checkForConflict(section, item.id);
+      if (sections.length === 0) {
+        sectionList.innerHTML = `<p class="text-sm text-gray-500 text-center">No sections available for this course.</p>`;
+      } else {
+        sections.forEach((section) => {
+          const isSelected =
+            currentlySelectedSection &&
+            currentlySelectedSection.Section === section.Section;
+          const isConflict = !isSelected && checkForConflict(section, item.id);
 
-        const sectionDiv = document.createElement("div");
-        sectionDiv.className = `section-item ${isSelected ? "selected" : ""} ${
-          isConflict ? "conflict" : ""
-        }`;
-        sectionDiv.dataset.itemId = item.id;
-        sectionDiv.dataset.sectionJson = JSON.stringify(section);
+          const sectionDiv = document.createElement("div");
+          sectionDiv.className = `section-item ${
+            isSelected ? "selected" : ""
+          } ${isConflict ? "conflict" : ""}`;
+          sectionDiv.dataset.itemId = item.id;
+          sectionDiv.dataset.sectionJson = JSON.stringify(section); // Store full section data
 
-        sectionDiv.innerHTML = `
-                  <div class="flex justify-between items-start">
-                      <div>
-                          <p class="font-bold">${section.Section} | ${
-          section.Time
-        }</p>
-                          <p class="text-xs text-gray-600">${
-                            section.Instructor
-                          } | Room: ${section.Room}</p>
+          sectionDiv.innerHTML = `
+                      <div class="flex justify-between items-center">
+                          <div>
+                              <p class="font-bold">${section.Section} | ${
+            section.Time
+          }</p>
+                              <p class="text-xs text-gray-600">${
+                                section.Instructor
+                              } | Room: ${section.Room}</p>
+                          </div>
+                          <input type="checkbox" class="section-checkbox w-5 h-5" ${
+                            isSelected ? "checked" : ""
+                          } ${isConflict ? "disabled" : ""}>
                       </div>
-                      <input type="checkbox" class="section-checkbox" ${
-                        isSelected ? "checked" : ""
-                      } ${isConflict ? "disabled" : ""}>
-                  </div>
-              `;
-        sectionList.appendChild(sectionDiv);
-      });
+                  `;
+          sectionList.appendChild(sectionDiv);
+        });
+      }
       container.appendChild(sectionList);
       requiredCoursesContainer.appendChild(container);
     });
@@ -253,34 +226,53 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- EVENT HANDLERS & LOGIC ---
 
+  // Navigation
+  nextStepBtn.addEventListener("click", () => {
+    currentStep = 2;
+    renderSidebar();
+  });
+  backStepBtn.addEventListener("click", () => {
+    currentStep = 1;
+    renderSidebar();
+  });
+
   availableCourseSearch.addEventListener("input", (e) =>
     renderStep1_SelectCourses(e.target.value)
   );
 
-  document
-    .getElementById("available-courses-list")
-    .addEventListener("click", (e) => {
-      if (e.target.classList.contains("remove-course-btn")) {
-        const idToRemove = e.target.dataset.id;
-        requiredItems.delete(idToRemove);
-        if (selectedSections.has(idToRemove)) {
-          const section = selectedSections.get(idToRemove);
-          removeEventFromCalendar(
-            `${section["Subject Code"]}-${section.Section}`
-          );
-          selectedSections.delete(idToRemove);
-        }
-        renderSidebar();
+  availableCoursesList.addEventListener("click", (e) => {
+    const itemBody = e.target.closest(".available-course-item");
+    const removeBtn = e.target.closest(".remove-course-btn");
+
+    if (removeBtn) {
+      const idToRemove = removeBtn.dataset.id;
+      requiredItems.delete(idToRemove);
+      if (selectedSections.has(idToRemove)) {
+        const section = selectedSections.get(idToRemove);
+        removeEventFromCalendar(
+          `${section["Subject Code"]}-${section.Section}`
+        );
+        selectedSections.delete(idToRemove);
       }
-    });
+      renderStep1_SelectCourses(availableCourseSearch.value);
+    } else if (itemBody) {
+      const courseCode = itemBody.dataset.courseCode;
+      if (courseCode) {
+        toggleRequiredCourse(courseCode);
+      }
+    }
+  });
 
   requiredCoursesContainer.addEventListener("click", (e) => {
     const header = e.target.closest(".required-course-header");
     if (header) {
       const id = header.dataset.id;
       const item = requiredItems.get(id);
-      item.isExpanded = !item.isExpanded;
-      renderStep2_SelectSections();
+      if (item) {
+        item.isExpanded =
+          item.isExpanded === undefined ? false : !item.isExpanded;
+        renderStep2_SelectSections();
+      }
     }
   });
 
@@ -294,19 +286,15 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   function toggleRequiredCourse(courseCode) {
-    if (requiredItems.has(courseCode)) {
-      return; // Should be handled by remove button
-    } else {
-      const courseInfo = uniqueCourses.get(courseCode);
-      requiredItems.set(courseCode, {
-        id: courseCode,
-        type: "course",
-        name: courseCode,
-        priority: 100,
-        isExpanded: true,
-      });
-    }
-    renderSidebar();
+    const courseInfo = uniqueCourses.get(courseCode);
+    requiredItems.set(courseCode, {
+      id: courseCode,
+      type: "course",
+      name: courseCode,
+      priority: 100,
+      isExpanded: true,
+    });
+    renderStep1_SelectCourses(availableCourseSearch.value);
   }
 
   function getSectionsForId(id) {
@@ -328,7 +316,7 @@ document.addEventListener("DOMContentLoaded", () => {
           `${currentlySelected["Subject Code"]}-${currentlySelected.Section}`
         );
       }
-      selectedSections.set(itemId, { ...section, isLocked: true });
+      selectedSections.set(itemId, { ...section, isLocked: true }); // Lock manual selections
       addEventToCalendar(section);
     } else {
       selectedSections.delete(itemId);
@@ -342,7 +330,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const timeStr = section.Time;
     if (!timeStr || String(timeStr).toLowerCase().includes("tba")) return [];
 
-    const daysMap = { M: 1, T: 2, W: 3, TH: 4, F: 5, S: 6, H: 4 };
+    const daysMap = { M: 1, T: 2, W: 3, TH: 4, F: 5, S: 6 };
     const dayTimeParts = String(timeStr)
       .split(";")
       .map((s) => s.trim());
@@ -389,7 +377,7 @@ document.addEventListener("DOMContentLoaded", () => {
       for (const t1 of sectionTimes) {
         for (const t2 of existingTimes) {
           if (t1.day === t2.day && t1.start < t2.end && t1.end > t2.start) {
-            return true; // Conflict found
+            return true;
           }
         }
       }
@@ -434,9 +422,8 @@ document.addEventListener("DOMContentLoaded", () => {
           course.title.toLowerCase().includes(filter)
       );
 
-    // Display only top 5 results if no search filter is applied
     const displayList =
-      filter === "" ? searchResults.slice(0, 5) : searchResults;
+      filter === "" ? searchResults.slice(0, 10) : searchResults;
 
     displayList.forEach((course) => {
       const div = document.createElement("div");
@@ -490,17 +477,10 @@ document.addEventListener("DOMContentLoaded", () => {
     closeGroupModal();
   });
 
-  /**
-   * The auto-scheduler uses a backtracking algorithm. For very large datasets,
-   * this could be slow. Libraries for Constraint Satisfaction Problems (CSP),
-   * like `js-csp`, could offer more advanced and optimized solvers if performance
-   * becomes an issue.
-   */
   // --- AUTO-SCHEDULER LOGIC ---
   autoScheduleBtn.addEventListener("click", runAutoScheduler);
 
   function runAutoScheduler() {
-    // Separate locked (manual) selections from those to be scheduled
     const lockedSelections = new Map();
     const requirementsToSchedule = [];
 
@@ -513,7 +493,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // Clear only non-locked items from the calendar
     selectedSections.forEach((section, reqId) => {
       if (!section.isLocked) {
         removeEventFromCalendar(
@@ -551,7 +530,6 @@ document.addEventListener("DOMContentLoaded", () => {
       );
     } else {
       alert("Could not find any valid schedule with the given constraints.");
-      // Restore calendar to its pre-run state
       displaySchedule(Array.from(selectedSections.values()));
     }
   }
@@ -605,7 +583,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (generatedSchedules.length === 0) return;
 
     const scheduleMap = generatedSchedules[currentScheduleIndex];
-    // Update the main selectedSections map
     selectedSections = new Map(scheduleMap);
 
     const scheduleArray = Array.from(scheduleMap.values());
@@ -616,10 +593,7 @@ document.addEventListener("DOMContentLoaded", () => {
       currentScheduleIndex + 1
     } of ${generatedSchedules.length}`;
 
-    // Re-render the sections to show what the auto-scheduler picked
-    if (currentStep === 2) {
-      renderStep2_SelectSections();
-    }
+    renderStep2_SelectSections();
   }
 
   document.getElementById("prev-btn").addEventListener("click", () => {
