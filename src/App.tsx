@@ -275,4 +275,6 @@ export default function App() {
                     </div>
                 </main>
             </div>
-        </Aler...
+        </AlertContext.Provider>
+    );
+}
