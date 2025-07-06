@@ -52,8 +52,14 @@ export default function App() {
     const [theme, setTheme] = useTheme();
     const [zoomLevel, setZoomLevel] = useState(100);
 
-    // Calculate dynamic height for the calendar based on zoom
-    const calendarHeight = 1400 * (zoomLevel / 100); // Base height * zoom factor
+    // Determine slotDuration based on zoomLevel to change time slot density
+    const getSlotDuration = (zoom: number) => {
+        if (zoom > 300) return '00:15:00'; // Most "zoomed-in" with 15-min gradations
+        if (zoom > 100) return '00:30:00'; // Medium zoom with 30-min gradations
+        return '01:00:00'; // Most "zoomed-out" with 1-hour gradations
+    };
+    const slotDuration = getSlotDuration(zoomLevel);
+
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -300,7 +306,7 @@ export default function App() {
                             <button title="Zoom Out" onClick={() => setZoomLevel(prev => Math.max(100, prev - 25))} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"><ZoomOut size={16}/></button>
                             <input type="range" min="100" max="500" value={zoomLevel} onChange={e => setZoomLevel(Number(e.target.value))} className="w-24"/>
                             <button title="Zoom In" onClick={() => setZoomLevel(prev => Math.min(500, prev + 25))} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"><ZoomIn size={16}/></button>
-                            <span className="w-10 text-center">{zoomLevel}%</span>
+                            <span className="w-12 text-center">{zoomLevel}%</span>
                         </div>
                         <button
                             onClick={() => setCalendarVisible(false)}
@@ -310,22 +316,19 @@ export default function App() {
                         </button>
                     </header>
                     <div className="flex-1 relative overflow-y-auto p-4">
-                        <div style={{ height: `${calendarHeight}px` }}>
-                            <FullCalendar
-                                plugins={[timeGridPlugin, interactionPlugin]}
-                                initialView="timeGridWeek"
-                                headerToolbar={false}
-                                allDaySlot={false}
-                                hiddenDays={[0]}
-                                slotMinTime="00:00:00"
-                                slotMaxTime="24:00:00"
-                                slotDuration='00:30:00'
-                                events={calendarEvents}
-                                eventTimeFormat={{ hour: 'numeric', minute: '2-digit', meridiem: 'short' }}
-                                firstDay={1}
-                                height="100%"
-                            />
-                        </div>
+                        <FullCalendar
+                            plugins={[timeGridPlugin, interactionPlugin]}
+                            initialView="timeGridWeek"
+                            headerToolbar={false}
+                            allDaySlot={false}
+                            hiddenDays={[0]}
+                            slotMinTime="00:00:00"
+                            slotMaxTime="24:00:00"
+                            slotDuration={slotDuration}
+                            events={calendarEvents}
+                            eventTimeFormat={{ hour: 'numeric', minute: '2-digit', meridiem: 'short' }}
+                            firstDay={1}
+                        />
                     </div>
                 </main>
             </div>
