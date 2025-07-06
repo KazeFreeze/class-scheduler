@@ -32,6 +32,14 @@ export default function App() {
     const [generatedSchedules, setGeneratedSchedules] = useState<Schedule[]>([]);
     const [currentScheduleIndex, setCurrentScheduleIndex] = useState(0);
     const [presetGroupAdded, setPresetGroupAdded] = useState(false);
+    const [startSunburstAnimation, setStartSunburstAnimation] = useState(false);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setStartSunburstAnimation(true);
+        }, 10000); // 10 seconds
+        return () => clearTimeout(timer); // Cleanup timer on unmount
+    }, []);
 
     const showAlert = useCallback((title: string, message: string) => {
         setAlertConfig({ isOpen: true, title, message });
@@ -231,7 +239,7 @@ export default function App() {
                             <button 
                                 onClick={() => setAboutModalOpen(true)} 
                                 title="About this project" 
-                                className="text-yellow-600 hover:text-yellow-700 hover:scale-110 transition-transform p-1 rounded-full animate-pulse"
+                                className={`relative text-yellow-600 hover:text-yellow-700 hover:scale-110 transition-transform p-1 rounded-full ${startSunburstAnimation ? 'animate-sunburst' : ''}`}
                             >
                                 <Coffee size={24} />
                             </button>

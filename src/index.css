@@ -45,3 +45,20 @@ body {
 .fc-theme-standard th {
   border-color: #e5e7eb !important; /* gray-200 */
 }
+
+/* Custom Sunburst Animation for Coffee Icon */
+@keyframes sunburst {
+  0% {
+    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7); /* amber-400 */
+  }
+  70% {
+    box-shadow: 0 0 10px 25px rgba(251, 191, 36, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0);
+  }
+}
+
+.animate-sunburst {
+  animation: sunburst 1.5s ease-out;
+}
