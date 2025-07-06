@@ -55,7 +55,6 @@ export const Step3_Export = ({ selectedSections, setStep }: Props) => {
 
                 if (days.length > 0) {
                     const startArr = startDate.split('-').map(Number);
-                    const endArr = endDate.split('-').map(Number);
                     
                     events.push({
                         title: `${section["Subject Code"]} (${section.Section})`,
