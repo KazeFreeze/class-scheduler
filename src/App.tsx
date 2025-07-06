@@ -33,9 +33,9 @@ const useTheme = () => {
 
 // Configuration for discrete zoom levels
 const zoomConfigs = [
-    { label: 'Hourly', slotDuration: '01:00:00', contentHeight: 1400 },
-    { label: '30-Min', slotDuration: '00:30:00', contentHeight: 2800 },
-    { label: '15-Min', slotDuration: '00:15:00', contentHeight: 5600 },
+    { label: 'Hourly', slotDuration: '01:00:00' },
+    { label: '30-Min', slotDuration: '00:30:00' },
+    { label: '15-Min', slotDuration: '00:15:00' },
 ];
 
 export default function App() {
@@ -323,10 +323,10 @@ export default function App() {
                             allDaySlot={false}
                             hiddenDays={[0]}
                             slotMinTime="00:00:00"
-                            slotMaxTime="24:00:00"
+                            slotMaxTime="23:59:00"
                             slotDuration={currentZoom.slotDuration}
                             slotLabelInterval={'01:00:00'}
-                            contentHeight={currentZoom.contentHeight}
+                            height="100%"
                             events={calendarEvents}
                             eventTimeFormat={{ hour: 'numeric', minute: '2-digit', meridiem: 'short' }}
                             firstDay={1}
