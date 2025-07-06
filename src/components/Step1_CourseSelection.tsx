@@ -35,7 +35,7 @@ export const Step1_CourseSelection = ({ uniqueCourses, requiredItems, setRequire
         const available = [...uniqueCourses.values()].filter(course => !requiredItems.some(req => req.id === course.code));
 
         if (!searchTerm) {
-            return available.slice(0, 50); // Show more results by default
+            return available.slice(0, 5); // Show fewer results by default
         }
 
         return available.filter(course =>
@@ -63,6 +63,7 @@ export const Step1_CourseSelection = ({ uniqueCourses, requiredItems, setRequire
                         : { code: item.name, title: `Group: ${item.courses?.join(', ')}` };
                     
                     if (!course) return null;
+                    
                     return (
                         <CourseItem 
                             key={item.id} 
