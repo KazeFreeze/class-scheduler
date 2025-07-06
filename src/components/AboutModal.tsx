@@ -67,7 +67,7 @@ export const AboutModal = ({ isOpen, onClose }: Props) => {
             {/* Full-screen QR Code Modal */}
             {showGcashQr && (
                 <div
-                    className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[60] transition-opacity duration-300"
+                    className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[60] transition-opacity duration-300 p-4"
                     onClick={() => setShowGcashQr(false)}
                 >
                     <div
@@ -81,7 +81,7 @@ export const AboutModal = ({ isOpen, onClose }: Props) => {
                         >
                             <X size={24} />
                         </button>
-                        <img src={GCASH_QR_CODE_PATH} alt="GCash QR Code" className="w-80 h-80 max-w-[80vw] max-h-[80vh] object-contain" />
+                        <img src={GCASH_QR_CODE_PATH} alt="GCash QR Code" className="h-[80vh] w-auto max-w-[80vw] object-contain" />
                         <p className="text-center mt-4 text-gray-600 font-medium">Scan with your GCash App</p>
                     </div>
                 </div>
