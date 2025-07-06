@@ -19,7 +19,6 @@ export const parseCourseToEvents = (course: CourseSection) => {
   const timeStr = course.Time;
   if (!timeStr || String(timeStr).toLowerCase().includes("tba")) return [];
 
-  // CORRECTED: The day mapping is now more specific to avoid single-letter conflicts (e.g., 'T' in 'SAT').
   const daysMap: { [key: string]: number } = {
     M: 1,
     T: 2,
@@ -40,25 +39,34 @@ export const parseCourseToEvents = (course: CourseSection) => {
     const startTime = `${timeMatch[1].padStart(2, "0")}:${timeMatch[2]}`;
     const endTime = `${timeMatch[3].padStart(2, "0")}:${timeMatch[4]}`;
 
-    // Extract the day part of the string, which can contain characters like '|' or spaces.
-    const dayStrMatch = part.match(/^([A-Z\s|]+)\s\d/);
+    const dayStrMatch = part.match(/^([A-Z\s|-]+)/);
     if (!dayStrMatch) return;
 
-    const dayStr = dayStrMatch[1].replace(/\|/g, "").trim();
+    const dayStr = dayStrMatch[1];
 
-    // CORRECTED: The parsing logic now checks for multi-letter day codes first.
-    const days: number[] = [];
-    const dayCodes = dayStr.split(/\s+/); // Split by spaces to handle multiple day codes
-    dayCodes.forEach((code) => {
-      if (daysMap[code]) {
-        days.push(daysMap[code]);
+    // CORRECTED: This new parsing logic mirrors the one in schedulerUtils,
+    // ensuring consistency between conflict detection and calendar display.
+    const parsedDays: number[] = [];
+    let i = 0;
+    while (i < dayStr.length) {
+      if (i + 2 < dayStr.length && daysMap[dayStr.substring(i, i + 3)]) {
+        parsedDays.push(daysMap[dayStr.substring(i, i + 3)]);
+        i += 3;
+      } else if (i + 1 < dayStr.length && daysMap[dayStr.substring(i, i + 2)]) {
+        parsedDays.push(daysMap[dayStr.substring(i, i + 2)]);
+        i += 2;
+      } else if (daysMap[dayStr[i]]) {
+        parsedDays.push(daysMap[dayStr[i]]);
+        i += 1;
+      } else {
+        i += 1;
       }
-    });
+    }
 
-    days.forEach((day) => {
+    [...new Set(parsedDays)].forEach((day) => {
       if (day) {
         courseEvents.push({
-          id: `${course["Subject Code"]}-${course.Section}-${day}`, // Add day to ID to ensure uniqueness
+          id: `${course["Subject Code"]}-${course.Section}-${day}`,
           title: `${course["Subject Code"]} (${course.Section})`,
           startTime: startTime,
           endTime: endTime,

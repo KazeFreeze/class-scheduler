@@ -7,7 +7,6 @@ export const getSectionTimes = (
   const timeStr = section.Time;
   if (!timeStr || String(timeStr).toLowerCase().includes("tba")) return [];
 
-  // CORRECTED: The day mapping is now more specific.
   const daysMap: { [key: string]: number } = {
     M: 1,
     T: 2,
@@ -27,17 +26,42 @@ export const getSectionTimes = (
     const start = parseInt(timeMatch[1], 10) * 60 + parseInt(timeMatch[2], 10);
     const end = parseInt(timeMatch[3], 10) * 60 + parseInt(timeMatch[4], 10);
 
-    const dayStrMatch = part.match(/^([A-Z\s|]+)\s\d/);
+    // Capture the day string part at the beginning of the line.
+    const dayStrMatch = part.match(/^([A-Z\s|-]+)/);
     if (!dayStrMatch) return;
 
-    const dayStr = dayStrMatch[1].replace(/\|/g, "").trim();
+    const dayStr = dayStrMatch[1];
 
-    // CORRECTED: The parsing logic now correctly handles codes like 'SAT'.
-    const dayCodes = dayStr.split(/\s+/);
-    dayCodes.forEach((code) => {
-      if (daysMap[code]) {
-        times.push({ day: daysMap[code], start, end });
+    // CORRECTED: This new parsing logic iterates through the day string,
+    // correctly identifying multi-letter codes ("SAT", "TH") and single-letter codes,
+    // while ignoring delimiters like hyphens, spaces, and pipes.
+    const parsedDays: number[] = [];
+    let i = 0;
+    while (i < dayStr.length) {
+      // Check for 3-letter codes first (e.g., "SAT")
+      if (i + 2 < dayStr.length && daysMap[dayStr.substring(i, i + 3)]) {
+        parsedDays.push(daysMap[dayStr.substring(i, i + 3)]);
+        i += 3;
       }
+      // Then 2-letter codes (e.g., "TH")
+      else if (i + 1 < dayStr.length && daysMap[dayStr.substring(i, i + 2)]) {
+        parsedDays.push(daysMap[dayStr.substring(i, i + 2)]);
+        i += 2;
+      }
+      // Then 1-letter codes (e.g., "M", "T", "W", "F")
+      else if (daysMap[dayStr[i]]) {
+        parsedDays.push(daysMap[dayStr[i]]);
+        i += 1;
+      }
+      // If it's not a recognized day code, skip the character.
+      else {
+        i += 1;
+      }
+    }
+
+    // Add the unique parsed days to the times array.
+    [...new Set(parsedDays)].forEach((day) => {
+      times.push({ day, start, end });
     });
   });
   return times;
