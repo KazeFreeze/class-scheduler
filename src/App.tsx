@@ -13,7 +13,12 @@ import { GroupModal } from './components/GroupModal';
 import type { Requirement, Schedule, AppStep, CourseSection } from './types';
 
 export default function App() {
-    const { allCoursesData, uniqueCourses, loading, error } = useCourses();
+    // The useCourses hook now provides the initial data fetch
+    const { courses, uniqueCourses, loading, error } = useCourses();
+    
+    // App-level state for all course data, allowing modifications (e.g., section priority)
+    const [allCoursesData, setAllCoursesData] = useState<CourseSection[]>([]);
+    
     const [step, setStep] = useState<AppStep>(1);
     const [requiredItems, setRequiredItems] = useState<Requirement[]>([]);
     const [selectedSections, setSelectedSections] = useState<Schedule>({});
@@ -22,25 +27,44 @@ export default function App() {
     const [generatedSchedules, setGeneratedSchedules] = useState<Schedule[]>([]);
     const [currentScheduleIndex, setCurrentScheduleIndex] = useState(0);
 
+    // Populate app-level state once the data is fetched
+    useEffect(() => {
+        if (courses.length > 0) {
+            setAllCoursesData(courses);
+        }
+    }, [courses]);
+
+    // Memoized calendar events derived from the currently selected sections
     const calendarEvents = useMemo(() => {
         return Object.values(selectedSections).flatMap(parseCourseToEvents);
     }, [selectedSections]);
 
+    // Handler to save a new group of courses
     const handleSaveGroup = (groupName: string, courseCodes: string[]) => {
         const newGroup: Requirement = {
             id: `group_${Date.now()}`,
             type: 'group',
             name: groupName,
             courses: courseCodes,
+            priority: 100, // Default priority for new groups
+            excluded: false,
         };
         setRequiredItems(prev => [...prev, newGroup]);
     };
     
+    /**
+     * The core auto-scheduling logic.
+     * This function now respects course/section priorities and exclusions.
+     */
     const runAutoScheduler = () => {
+        // Separate locked sections from those that need scheduling
         const lockedSelections: Schedule = {};
         const requirementsToSchedule: Requirement[] = [];
 
         requiredItems.forEach(req => {
+            // Exclude requirements the user has toggled off
+            if (req.excluded) return;
+
             const selected = selectedSections[req.id];
             if (selected && selected.isLocked) {
                 lockedSelections[req.id] = selected;
@@ -49,8 +73,10 @@ export default function App() {
             }
         });
 
-        const newSelectedSections = { ...lockedSelections };
+        // Sort requirements by priority (lower number = higher priority)
+        requirementsToSchedule.sort((a, b) => a.priority - b.priority);
         
+        // Helper to get all possible sections for a requirement
         const getSectionsForId = (id: string): CourseSection[] => {
             const item = requiredItems.find(r => r.id === id);
             if (!item) return [];
@@ -58,16 +84,27 @@ export default function App() {
             return allCoursesData.filter(c => courseCodes?.includes(c["Subject Code"]));
         };
         
+        // Pre-process and store valid, sorted sections for each requirement
         const sectionsByRequirement = new Map<string, CourseSection[]>();
         requirementsToSchedule.forEach(req => {
-            sectionsByRequirement.set(req.id, getSectionsForId(req.id));
+            const possibleSections = getSectionsForId(req.id);
+            
+            // Filter out sections that are excluded or have no slots
+            const validSections = possibleSections.filter(sec => !sec.excluded && sec.Slots > 0);
+            
+            // Sort the valid sections by their individual priority
+            validSections.sort((a, b) => a.priority - b.priority);
+
+            sectionsByRequirement.set(req.id, validSections);
         });
 
         const schedules: Schedule[] = [];
 
+        // Recursive function to find valid schedule combinations
         function findSchedulesRecursive(reqIndex: number, currentSchedule: Schedule) {
-            if (schedules.length >= 100) return;
+            if (schedules.length >= 50) return; // Limit to 50 schedules for performance
 
+            // If all requirements are scheduled, save the result
             if (reqIndex === requirementsToSchedule.length) {
                 schedules.push({ ...currentSchedule });
                 return;
@@ -76,10 +113,12 @@ export default function App() {
             const req = requirementsToSchedule[reqIndex];
             const possibleSections = sectionsByRequirement.get(req.id) || [];
 
+            // Iterate through the pre-sorted, valid sections
             for (const section of possibleSections) {
                 if (!checkForConflict(section, currentSchedule, req.id)) {
                     currentSchedule[req.id] = section;
                     findSchedulesRecursive(reqIndex + 1, currentSchedule);
+                    // Backtrack
                     delete currentSchedule[req.id];
                 }
             }
@@ -93,17 +132,19 @@ export default function App() {
             setSelectedSections(schedules[0]);
             alert(`Successfully generated ${schedules.length} possible schedules!`);
         } else {
-            setSelectedSections(newSelectedSections);
-            alert("Could not find any valid schedule with the given constraints.");
+            setSelectedSections(lockedSelections); // Revert to only locked sections
+            alert("Could not find any valid schedule with the given constraints and priorities.");
         }
     };
     
+    // Effect to update the displayed schedule when the user navigates through generated options
     useEffect(() => {
         if (generatedSchedules.length > 0) {
             setSelectedSections(generatedSchedules[currentScheduleIndex]);
         }
     }, [currentScheduleIndex, generatedSchedules]);
     
+    // Effect to clean up state when requirements change
     useEffect(() => {
         setGeneratedSchedules([]);
         setCurrentScheduleIndex(0);
@@ -125,7 +166,8 @@ export default function App() {
             case 1:
                 return <Step1_CourseSelection uniqueCourses={uniqueCourses} requiredItems={requiredItems} setRequiredItems={setRequiredItems} setStep={setStep} openGroupModal={() => setGroupModalOpen(true)} />;
             case 2:
-                return <Step2_SelectSections allCoursesData={allCoursesData} requiredItems={requiredItems} selectedSections={selectedSections} setSelectedSections={setSelectedSections} setStep={setStep} runAutoScheduler={runAutoScheduler} generatedSchedules={generatedSchedules} currentScheduleIndex={currentScheduleIndex} setCurrentScheduleIndex={setCurrentScheduleIndex} />;
+                // Pass down allCoursesData and its setter to allow modifications
+                return <Step2_SelectSections allCoursesData={allCoursesData} setAllCoursesData={setAllCoursesData} requiredItems={requiredItems} selectedSections={selectedSections} setSelectedSections={setSelectedSections} setStep={setStep} runAutoScheduler={runAutoScheduler} generatedSchedules={generatedSchedules} currentScheduleIndex={currentScheduleIndex} setCurrentScheduleIndex={setCurrentScheduleIndex} />;
             case 3:
                 return <Step3_Export selectedSections={selectedSections} setStep={setStep} />;
             default:
@@ -134,18 +176,13 @@ export default function App() {
     };
     
     const subtitleText: { [key in AppStep]: string } = {
-        1: "Step 1: Select your required courses.",
-        2: "Step 2: Choose sections for each course.",
+        1: "Step 1: Select courses and set priorities.",
+        2: "Step 2: Fine-tune sections or auto-schedule.",
         3: "Step 3: Finalize and export your schedule."
     }
 
-    if (loading) {
-        return <div className="flex items-center justify-center h-screen text-xl font-semibold">Loading Course Data...</div>;
-    }
-
-    if (error) {
-        return <div className="flex items-center justify-center h-screen text-xl font-semibold text-red-500 p-8">{error}</div>;
-    }
+    if (loading) return <div className="flex items-center justify-center h-screen text-xl font-semibold">Loading Course Data...</div>;
+    if (error) return <div className="flex items-center justify-center h-screen text-xl font-semibold text-red-500 p-8 text-center">{error}</div>;
 
     return (
         <div className="flex h-screen overflow-hidden bg-gray-100 font-sans text-gray-800">
@@ -156,12 +193,12 @@ export default function App() {
                     <h1 className="text-2xl font-bold">Class Planner</h1>
                     <p className="text-sm text-gray-500">{subtitleText[step]}</p>
                 </div>
-                {renderStep()}
+                {allCoursesData.length > 0 && renderStep()}
             </aside>
 
             <main className="hidden md:flex flex-1 flex-col bg-gray-50">
                 <header className="bg-white border-b border-gray-200 p-4 flex justify-between items-center">
-                    <h2 className="text-xl font-bold">Weekly Schedule</h2>
+                    <h2 className="text-xl font-bold">Weekly Schedule Preview</h2>
                 </header>
                 <div className="flex-1 p-4 relative">
                     <FullCalendar
@@ -169,17 +206,13 @@ export default function App() {
                         initialView="timeGridWeek"
                         headerToolbar={false}
                         allDaySlot={false}
-                        hiddenDays={[0]}
+                        hiddenDays={[0]} // Hide Sunday
                         slotMinTime="07:00:00"
                         slotMaxTime="22:00:00"
                         height="100%"
                         events={calendarEvents}
-                        eventTimeFormat={{
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            meridiem: 'short'
-                        }}
-                        firstDay={1}
+                        eventTimeFormat={{ hour: 'numeric', minute: '2-digit', meridiem: 'short' }}
+                        firstDay={1} // Start week on Monday
                         contentHeight="auto"
                     />
                 </div>
