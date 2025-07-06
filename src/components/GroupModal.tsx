@@ -10,10 +10,12 @@ interface Props {
 }
 
 export const GroupModal = ({ isOpen, onClose, uniqueCourses, onSave }: Props) => {
+    // These hooks are now called on every render, which is correct.
     const [groupName, setGroupName] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCourses, setSelectedCourses] = useState<Map<string, UniqueCourse>>(new Map());
 
+    // This effect resets the modal's state when it opens.
     useEffect(() => {
         if (isOpen) {
             setGroupName('');
@@ -21,8 +23,6 @@ export const GroupModal = ({ isOpen, onClose, uniqueCourses, onSave }: Props) =>
             setSelectedCourses(new Map());
         }
     }, [isOpen]);
-
-    if (!isOpen) return null;
 
     const handleSelectCourse = (course: UniqueCourse) => {
         setSelectedCourses(prev => new Map(prev).set(course.code, course));
@@ -48,14 +48,23 @@ export const GroupModal = ({ isOpen, onClose, uniqueCourses, onSave }: Props) =>
 
     const searchResults = useMemo(() => {
         const lowerCaseSearch = searchTerm.toLowerCase();
-        const available = [...uniqueCourses.values()].filter(c => !selectedCourses.has(c.code));
+        // Ensure uniqueCourses is treated as an array before filtering.
+        const available = Array.from(uniqueCourses.values()).filter(c => !selectedCourses.has(c.code));
         if (!searchTerm) return available.slice(0, 10);
         return available.filter(c => c.code.toLowerCase().includes(lowerCaseSearch) || c.title.toLowerCase().includes(lowerCaseSearch));
     }, [searchTerm, uniqueCourses, selectedCourses]);
 
+    // CORRECTED: The modal is always rendered. Visibility is controlled by CSS classes
+    // based on the `isOpen` prop. This fixes the "rendered more hooks" error.
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 flex flex-col h-[90vh] max-h-[700px]">
+        <div 
+            className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+            onClick={onClose}
+        >
+            <div 
+                className={`bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 flex flex-col h-[90vh] max-h-[700px] transform transition-all duration-300 ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
+                onClick={e => e.stopPropagation()} // Prevent clicks inside the modal from closing it
+            >
                 <div className="flex justify-between items-center mb-4 flex-shrink-0">
                     <h3 className="text-xl font-semibold">Create a Custom Group</h3>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-800"><X size={24} /></button>
