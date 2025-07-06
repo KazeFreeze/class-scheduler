@@ -13,16 +13,16 @@ interface Props {
 
 export const SectionItem = ({ section, isSelected, isConflicting, conflictText, onToggleSelect, onUpdate, onEdit }: Props) => {
     const hasNoSlots = section.Slots <= 0;
-    // Custom classes are never disabled for conflict reasons as they are manually managed.
     const isDisabled = !section.isCustom && (hasNoSlots || isConflicting);
 
-    const baseClasses = "bg-white p-3 rounded-lg border transition-all duration-200";
-    let selectedClasses = "border-blue-500 bg-blue-50 ring-2 ring-blue-500";
+    const baseClasses = "bg-white dark:bg-gray-800 p-3 rounded-lg border dark:border-gray-700 transition-all duration-200";
+    
+    let selectedClasses = "border-blue-500 bg-blue-50 dark:bg-blue-900/50 ring-2 ring-blue-500";
     if (section.isCustom && isSelected) {
-        selectedClasses = "border-purple-500 bg-purple-50 ring-2 ring-purple-500";
+        selectedClasses = "border-purple-500 bg-purple-50 dark:bg-purple-900/50 ring-2 ring-purple-500";
     }
-    const disabledClasses = "bg-gray-100 border-gray-300 opacity-60 cursor-not-allowed";
-    const hoverClasses = "hover:shadow-md hover:-translate-y-0.5 hover:border-gray-400";
+    const disabledClasses = "bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-700 opacity-60 cursor-not-allowed";
+    const hoverClasses = "hover:shadow-md hover:-translate-y-0.5 hover:border-gray-400 dark:hover:border-gray-500";
 
     const handleClick = () => {
         if (!isDisabled) {
@@ -31,13 +31,13 @@ export const SectionItem = ({ section, isSelected, isConflicting, conflictText, 
     };
 
     const hasMeaningfulRemarks = section.Remarks && section.Remarks.trim() !== '-';
-
+    
     return (
         <div className={`${baseClasses} ${isSelected ? selectedClasses : ''} ${isDisabled ? disabledClasses : hoverClasses}`} onClick={handleClick}>
             <div className="flex justify-between items-start">
                 <div className="flex-grow">
                     <p className="font-bold">{section.Section} | {section.Time}</p>
-                    <p className="text-xs text-gray-600">{section.Instructor} | Room: {section.Room}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">{section.Instructor} | Room: {section.Room}</p>
                     <p className={`text-sm font-semibold mt-1 ${hasNoSlots ? 'text-red-600' : 'text-green-600'}`}>
                         Slots Available: {section.Slots}
                     </p>
@@ -64,31 +64,31 @@ export const SectionItem = ({ section, isSelected, isConflicting, conflictText, 
             </div>
 
             {hasMeaningfulRemarks && (
-                <div className="mt-2 p-2 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 text-xs flex items-start gap-2">
+                <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-400 dark:border-yellow-600 text-yellow-800 dark:text-yellow-300 text-xs flex items-start gap-2">
                     <Info size={16} className="flex-shrink-0 mt-0.5" />
                     <p>{section.Remarks}</p>
                 </div>
             )}
 
-            <div className="mt-3 pt-2 border-t border-gray-200 flex items-center justify-between text-sm" onClick={e => e.stopPropagation()}>
+            <div className="mt-3 pt-2 border-t border-gray-200 dark:border-gray-600 flex items-center justify-between text-sm" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center gap-4">
                     {!section.isCustom && (
                         <>
                             <div className="flex items-center gap-2" title="Set priority for this specific section">
-                                <Star size={16} className="text-gray-500"/>
-                                <label htmlFor={`sec-priority-${section["Subject Code"]}-${section.Section}`} className="font-medium text-gray-600">Priority:</label>
+                                <Star size={16} className="text-gray-500 dark:text-gray-400"/>
+                                <label htmlFor={`sec-priority-${section["Subject Code"]}-${section.Section}`} className="font-medium text-gray-600 dark:text-gray-300">Priority:</label>
                                 <input
                                     type="number"
                                     id={`sec-priority-${section["Subject Code"]}-${section.Section}`}
                                     value={section.priority}
                                     onChange={e => onUpdate({ priority: parseInt(e.target.value) || 100 })}
-                                    className="w-16 p-1 border rounded-md text-center"
+                                    className="w-16 p-1 border rounded-md text-center bg-gray-50 dark:bg-gray-700 dark:border-gray-600"
                                     disabled={isDisabled && !isSelected}
                                 />
                             </div>
                              <div className="flex items-center gap-2" title="Exclude this specific section from auto-scheduling">
-                                <ShieldOff size={16} className="text-gray-500"/>
-                                <label htmlFor={`sec-exclude-${section["Subject Code"]}-${section.Section}`} className="font-medium text-gray-600">Exclude:</label>
+                                <ShieldOff size={16} className="text-gray-500 dark:text-gray-400"/>
+                                <label htmlFor={`sec-exclude-${section["Subject Code"]}-${section.Section}`} className="font-medium text-gray-600 dark:text-gray-300">Exclude:</label>
                                 <input
                                     type="checkbox"
                                     id={`sec-exclude-${section["Subject Code"]}-${section.Section}`}
@@ -102,7 +102,7 @@ export const SectionItem = ({ section, isSelected, isConflicting, conflictText, 
                     )}
                 </div>
                 {section.isCustom && (
-                    <button onClick={onEdit} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-medium py-1 px-2 rounded-md hover:bg-blue-100">
+                    <button onClick={onEdit} className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium py-1 px-2 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/50">
                         <Edit size={14} />
                         <span>Edit Details</span>
                     </button>

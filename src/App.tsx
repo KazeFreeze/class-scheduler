@@ -299,7 +299,7 @@ export default function App() {
                             <ArrowLeft size={16} /> Back
                         </button>
                     </header>
-                    <div className="flex-1 p-4 relative overflow-y-auto">
+                    <div className="flex-1 p-4 relative">
                         <FullCalendar
                             plugins={[timeGridPlugin, interactionPlugin]}
                             initialView="timeGridWeek"
@@ -311,6 +311,7 @@ export default function App() {
                             events={calendarEvents}
                             eventTimeFormat={{ hour: 'numeric', minute: '2-digit', meridiem: 'short' }}
                             firstDay={1}
+                            height="100%"
                          />
                     </div>
                 </main>
