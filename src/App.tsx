@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { Coffee, ArrowLeft, Eye, Moon, Sun, RefreshCw } from 'lucide-react';
+import { Coffee, ArrowLeft, Eye, Moon, Sun, RefreshCw, ZoomIn, ZoomOut } from 'lucide-react';
 
 import { useCourses } from './hooks/useCourses';
 import { parseCourseToEvents } from './utils/calendarUtils';
@@ -50,9 +50,15 @@ export default function App() {
     const [startSunburstAnimation, setStartSunburstAnimation] = useState(false);
     const [isCalendarVisible, setCalendarVisible] = useState(false);
     const [theme, setTheme] = useTheme();
+    const [zoomLevel, setZoomLevel] = useState(100);
 
-    const [slotMinTime, setSlotMinTime] = useState("07:00:00");
-    const [slotMaxTime, setSlotMaxTime] = useState("22:00:00");
+    // Determine slotDuration based on zoomLevel
+    const getSlotDuration = (zoom: number) => {
+        if (zoom < 50) return '01:00:00'; // Zoomed out
+        if (zoom > 125) return '00:15:00'; // Zoomed in
+        return '00:30:00'; // Default
+    };
+    const slotDuration = getSlotDuration(zoomLevel);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -294,15 +300,12 @@ export default function App() {
 
                 <main className={`${isCalendarVisible ? 'flex' : 'hidden'} md:flex flex-1 flex-col bg-gray-100 dark:bg-gray-900`}>
                     <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-3 flex-wrap justify-between items-center gap-3 flex">
-                        <h2 className="text-xl font-bold">Weekly Schedule Preview</h2>
+                        <h2 className="text-xl font-bold">Weekly Schedule</h2>
                         <div className="flex items-center gap-2 text-sm">
-                            <label htmlFor="start-time">Start:</label>
-                            <input type="time" id="start-time" value={slotMinTime} onChange={e => setSlotMinTime(e.target.value)} className="p-1 border rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600"/>
-                            <label htmlFor="end-time">End:</label>
-                            <input type="time" id="end-time" value={slotMaxTime} onChange={e => setSlotMaxTime(e.target.value)} className="p-1 border rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600"/>
-                            <button title="Reset time range" onClick={() => { setSlotMinTime("07:00:00"); setSlotMaxTime("22:00:00"); }} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full">
-                                <RefreshCw size={16}/>
-                            </button>
+                            <button title="Zoom Out" onClick={() => setZoomLevel(prev => Math.max(0, prev - 10))} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"><ZoomOut size={16}/></button>
+                            <input type="range" min="0" max="150" value={zoomLevel} onChange={e => setZoomLevel(Number(e.target.value))} className="w-24"/>
+                            <button title="Zoom In" onClick={() => setZoomLevel(prev => Math.min(150, prev + 10))} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"><ZoomIn size={16}/></button>
+                            <span className="w-10 text-center">{zoomLevel}%</span>
                         </div>
                         <button
                             onClick={() => setCalendarVisible(false)}
@@ -311,20 +314,20 @@ export default function App() {
                             <ArrowLeft size={16} /> Back
                         </button>
                     </header>
-                    <div className="flex-1 relative">
-                        <div className="absolute inset-0 p-4">
+                    <div className="flex-1 relative overflow-y-auto">
+                        <div className="p-4">
                             <FullCalendar
                                 plugins={[timeGridPlugin, interactionPlugin]}
                                 initialView="timeGridWeek"
                                 headerToolbar={false}
                                 allDaySlot={false}
                                 hiddenDays={[0]}
-                                slotMinTime={slotMinTime}
-                                slotMaxTime={slotMaxTime}
+                                slotMinTime="00:00:00"
+                                slotMaxTime="24:00:00"
+                                slotDuration={slotDuration}
                                 events={calendarEvents}
                                 eventTimeFormat={{ hour: 'numeric', minute: '2-digit', meridiem: 'short' }}
                                 firstDay={1}
-                                height="100%"
                             />
                         </div>
                     </div>
