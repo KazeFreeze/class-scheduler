@@ -31,6 +31,12 @@ const useTheme = () => {
     return [theme, setTheme] as const;
 };
 
+// Configuration for discrete zoom levels
+const zoomConfigs = [
+    { label: 'Small', slotDuration: '01:00:00', contentHeight: 1400 },
+    { label: 'Medium', slotDuration: '00:30:00', contentHeight: 2800 },
+    { label: 'Large', slotDuration: '00:15:00', contentHeight: 5600 },
+];
 
 export default function App() {
     const { allCoursesData, setAllCoursesData, uniqueCourses, loading, error } = useCourses();
@@ -50,16 +56,11 @@ export default function App() {
     const [startSunburstAnimation, setStartSunburstAnimation] = useState(false);
     const [isCalendarVisible, setCalendarVisible] = useState(false);
     const [theme, setTheme] = useTheme();
-    const [zoomLevel, setZoomLevel] = useState(125);
+    const [zoomIndex, setZoomIndex] = useState(1); // Default to Medium
 
-    // Determine slotDuration based on zoomLevel to change time slot density
-    const getSlotDuration = (zoom: number) => {
-        if (zoom > 300) return '00:15:00'; // Most "zoomed-in" with 15-min gradations
-        if (zoom > 100) return '00:30:00'; // Medium zoom with 30-min gradations
-        return '01:00:00'; // Most "zoomed-out" with 1-hour gradations
-    };
-    const slotDuration = getSlotDuration(zoomLevel);
-
+    const handleZoomIn = () => setZoomIndex(prev => Math.min(prev + 1, zoomConfigs.length - 1));
+    const handleZoomOut = () => setZoomIndex(prev => Math.max(prev - 1, 0));
+    const currentZoom = zoomConfigs[zoomIndex];
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -303,10 +304,9 @@ export default function App() {
                     <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-3 flex-wrap justify-between items-center gap-3 flex">
                         <h2 className="text-xl font-bold">Weekly Schedule</h2>
                         <div className="flex items-center gap-2 text-sm">
-                            <button title="Zoom Out" onClick={() => setZoomLevel(prev => Math.max(100, prev - 25))} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"><ZoomOut size={16}/></button>
-                            <input type="range" min="100" max="500" value={zoomLevel} onChange={e => setZoomLevel(Number(e.target.value))} className="w-24"/>
-                            <button title="Zoom In" onClick={() => setZoomLevel(prev => Math.min(500, prev + 25))} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"><ZoomIn size={16}/></button>
-                            <span className="w-12 text-center">{zoomLevel}%</span>
+                            <button title="Zoom Out" onClick={handleZoomOut} disabled={zoomIndex === 0} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"><ZoomOut size={16}/></button>
+                            <span className="w-20 text-center font-semibold">{currentZoom.label}</span>
+                            <button title="Zoom In" onClick={handleZoomIn} disabled={zoomIndex === zoomConfigs.length - 1} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"><ZoomIn size={16}/></button>
                         </div>
                         <button
                             onClick={() => setCalendarVisible(false)}
@@ -324,7 +324,9 @@ export default function App() {
                             hiddenDays={[0]}
                             slotMinTime="00:00:00"
                             slotMaxTime="24:00:00"
-                            slotDuration={slotDuration}
+                            slotDuration={currentZoom.slotDuration}
+                            slotLabelInterval={currentZoom.slotDuration}
+                            contentHeight={currentZoom.contentHeight}
                             events={calendarEvents}
                             eventTimeFormat={{ hour: 'numeric', minute: '2-digit', meridiem: 'short' }}
                             firstDay={1}
