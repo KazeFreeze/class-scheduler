@@ -31,11 +31,12 @@ export const useCourses = () => {
         const data = await response.json();
 
         // Process fetched courses to add default client-side properties
-        // CORRECTED: Reads "Slots" with a capital 'S' to match the incoming JSON data.
         const coursesWithDefaults = data.courses.map(
           (c: any): CourseSection => ({
             ...c,
-            Slots: c.Slots ?? 0, // Default to 0 if slots are not provided
+            // CORRECTED: Reads from "Free Slots" to match the incoming JSON data
+            // and maps it to the client-side 'Slots' property.
+            Slots: c["Free Slots"] ?? 0,
             Remarks: c.Remarks ?? "", // Default to empty string for remarks
             priority: 100, // Default priority for sections (lower is higher)
             excluded: false, // Default exclusion status
