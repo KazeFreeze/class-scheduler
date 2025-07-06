@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { Coffee, ArrowLeft, Eye, Moon, Sun, RefreshCw, ZoomIn, ZoomOut } from 'lucide-react';
+import { Coffee, ArrowLeft, Eye, Moon, Sun, ZoomIn, ZoomOut } from 'lucide-react';
 
 import { useCourses } from './hooks/useCourses';
 import { parseCourseToEvents } from './utils/calendarUtils';
