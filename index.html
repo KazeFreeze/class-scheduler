@@ -5,70 +5,99 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Class Scheduler</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.css' rel='stylesheet' />
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'custom-green': '#A3E635',
-                        'custom-blue': '#3B82F6',
-                    }
-                }
-            }
-        }
-    </script>
 </head>
-<body class="bg-gray-100 font-sans">
+<body class="bg-gray-100 font-sans text-gray-800">
     <div class="flex h-screen">
         <!-- Sidebar -->
-        <aside class="w-64 bg-gray-800 text-white flex flex-col">
-            <div class="p-6">
-                <h1 class="text-2xl font-bold">Scheduler</h1>
+        <aside class="w-1/3 max-w-md bg-white border-r border-gray-200 flex flex-col">
+            <div class="p-4 border-b border-gray-200">
+                <h1 class="text-2xl font-bold">Class Planner</h1>
+                <p class="text-sm text-gray-500">Build your ideal schedule.</p>
             </div>
-            <nav class="flex-1 px-4 space-y-2">
-                <a href="#" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 rounded-md">Planner</a>
-                <a href="#" class="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 rounded-md">Priorities</a>
-                <a href="#" class="flex items-center px-4 py-2 bg-gray-900 text-white rounded-md">Time Blocking</a>
-            </nav>
-            <div class="p-6 border-t border-gray-700">
-                <h2 class="text-xl font-semibold mb-4">Select Courses</h2>
-                <div class="mb-4">
-                    <input type="text" id="course-search" placeholder="Search courses..." class="w-full p-2 border bg-gray-700 border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+
+            <!-- Required Courses & Groups -->
+            <div class="p-4 flex-shrink-0 border-b border-gray-200">
+                <h2 class="text-lg font-semibold mb-3">Required Courses & Groups</h2>
+                <div id="required-courses-list" class="space-y-3 max-h-64 overflow-y-auto pr-2">
+                    <!-- Required courses and groups will be dynamically added here -->
                 </div>
-                <div id="course-list" class="space-y-2 max-h-60 overflow-y-auto">
-                    <!-- Dynamic course checkboxes -->
-                </div>
-                <div class="mt-6">
-                     <button id="generate-schedule" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors duration-300">Generate Schedules</button>
+                <div class="mt-4 flex gap-2">
+                    <button id="add-course-btn" class="flex-1 bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 text-sm font-medium">Add Course</button>
+                    <button id="create-group-btn" class="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 text-sm font-medium">Create Group</button>
                 </div>
             </div>
+
+            <!-- Auto-Scheduler & Finalize -->
+            <div class="p-4 flex-shrink-0 border-t border-gray-200">
+                 <h2 class="text-lg font-semibold mb-3">Scheduler</h2>
+                 <button id="auto-schedule-btn" class="w-full bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 font-semibold flex items-center justify-center gap-2">
+                    <i class="fas fa-magic"></i> Auto-Schedule
+                </button>
+                <div id="schedule-actions" class="mt-4 flex justify-between items-center hidden">
+                     <button id="prev-btn" class="text-gray-500 hover:text-gray-800 p-2 rounded-full"><i class="fas fa-arrow-left"></i></button>
+                     <span id="schedule-counter" class="text-sm font-medium text-gray-700"></span>
+                     <button id="next-btn" class="text-gray-500 hover:text-gray-800 p-2 rounded-full"><i class="fas fa-arrow-right"></i></button>
+                </div>
+            </div>
+            
+            <div class="flex-grow p-4 overflow-y-auto">
+                 <div id="schedule-details-container">
+                    <!-- Details of the currently selected schedule will appear here -->
+                 </div>
+            </div>
+
         </aside>
 
-        <!-- Main Content -->
-        <div class="flex-1 flex flex-col">
+        <!-- Main Content: Calendar -->
+        <main class="flex-1 flex flex-col bg-gray-50">
             <header class="bg-white border-b border-gray-200 p-4 flex justify-between items-center">
-                <div>
-                    <h2 class="text-2xl font-bold">July 2025</h2>
-                </div>
-                <div class="flex items-center gap-4">
-                    <button id="prev-btn" class="text-gray-500 hover:text-gray-800">&larr;</button>
-                     <span id="schedule-counter" class="text-lg font-medium text-gray-800"></span>
-                    <button id="next-btn" class="text-gray-500 hover:text-gray-800">&rarr;</button>
-                    <button id="export-btn" class="bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors duration-300 text-sm">Download .ics</button>
-                </div>
+                <h2 class="text-xl font-bold">Week View</h2>
+                <button id="export-btn" class="bg-gray-800 text-white py-2 px-4 rounded-md hover:bg-black text-sm">
+                    <i class="fas fa-download mr-2"></i>Export .ics
+                </button>
             </header>
-            <main class="flex-1 p-6 overflow-y-auto">
-                <div id='calendar'></div>
-            </main>
+            <div class="flex-1 p-4">
+                <div id='calendar' class="h-full"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="course-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
+            <h3 class="text-xl font-semibold mb-4">Add a Required Course</h3>
+            <input type="text" id="modal-course-search" placeholder="Search by code or title..." class="w-full p-2 border rounded-md mb-4">
+            <div id="modal-course-list" class="max-h-80 overflow-y-auto"></div>
+        </div>
+    </div>
+    
+    <div id="group-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6">
+            <h3 class="text-xl font-semibold mb-4">Create a Custom Group</h3>
+            <div class="flex gap-4">
+                <div class="w-1/2">
+                    <input type="text" id="group-course-search" placeholder="Search courses to add..." class="w-full p-2 border rounded-md mb-4">
+                    <div id="group-modal-search-results" class="max-h-64 overflow-y-auto"></div>
+                </div>
+                <div class="w-1/2">
+                    <h4 class="font-semibold">Courses in this Group</h4>
+                    <div id="group-modal-selected-list" class="max-h-64 overflow-y-auto mt-2 space-y-2"></div>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end gap-2">
+                <button id="cancel-group-btn" class="bg-gray-200 text-gray-700 py-2 px-4 rounded-md">Cancel</button>
+                <button id="save-group-btn" class="bg-blue-500 text-white py-2 px-4 rounded-md">Save Group</button>
+            </div>
         </div>
     </div>
 
-    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
     <script src="https://cdn.jsdelivr.net/npm/ics@2.36.0/dist/ics.deps.min.js"></script>
     <script type="module" src="js/main.js"></script>
     <script type="module" src="js/calendar.js"></script>
