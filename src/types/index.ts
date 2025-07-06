@@ -16,6 +16,7 @@ export interface CourseSection {
   isLocked?: boolean; // If user manually selects it, it's locked in the schedule
   priority: number; // Scheduling priority for this section (lower is higher)
   excluded: boolean; // Whether to exclude this section from auto-scheduling
+  isCustom?: boolean; // To identify user-added/edited classes
 }
 
 /**
@@ -37,6 +38,7 @@ export interface Requirement {
   courses?: string[]; // List of course codes for a group requirement
   priority: number; // Scheduling priority for this requirement (lower is higher)
   excluded: boolean; // Whether to exclude this entire requirement from auto-scheduling
+  isCustom?: boolean; // To identify requirements for custom classes
 }
 
 /**

@@ -16,16 +16,21 @@ interface Props {
     generatedSchedules: Schedule[];
     currentScheduleIndex: number;
     setCurrentScheduleIndex: React.Dispatch<React.SetStateAction<number>>;
+    openCustomClassModal: (classToEdit: CourseSection) => void;
 }
 
-export const Step2_SelectSections = ({ allCoursesData, setAllCoursesData, requiredItems, setRequiredItems, selectedSections, setSelectedSections, setStep, runAutoScheduler, generatedSchedules, currentScheduleIndex, setCurrentScheduleIndex }: Props) => {
+export const Step2_SelectSections = ({ allCoursesData, setAllCoursesData, requiredItems, setRequiredItems, selectedSections, setSelectedSections, setStep, runAutoScheduler, generatedSchedules, currentScheduleIndex, setCurrentScheduleIndex, openCustomClassModal }: Props) => {
     const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(requiredItems.map(r => r.id)));
 
     const getSectionsForId = useCallback((id: string): CourseSection[] => {
         const item = requiredItems.find(r => r.id === id);
         if (!item) return [];
+        // Handle custom classes, which are stored directly in allCoursesData
+        if (item.isCustom) {
+            return allCoursesData.filter(c => c.isCustom && `custom_${c["Subject Code"]}_${c.Section}` === id);
+        }
         const courseCodes = item.type === 'group' ? item.courses : [item.id];
-        return allCoursesData.filter(c => courseCodes?.includes(c["Subject Code"]));
+        return allCoursesData.filter(c => !c.isCustom && courseCodes?.includes(c["Subject Code"]));
     }, [requiredItems, allCoursesData]);
     
     const handleToggleSection = (requirementId: string, section: CourseSection, isSelected: boolean) => {
@@ -34,7 +39,11 @@ export const Step2_SelectSections = ({ allCoursesData, setAllCoursesData, requir
             if (isSelected) {
                 newSelections[requirementId] = { ...section, isLocked: true };
             } else {
-                delete newSelections[requirementId];
+                // For custom classes, deselecting here shouldn't remove it from the list, just the schedule
+                const current = newSelections[requirementId];
+                if (current && current.isLocked) {
+                     delete newSelections[requirementId];
+                }
             }
             return newSelections;
         });
@@ -78,18 +87,20 @@ export const Step2_SelectSections = ({ allCoursesData, setAllCoursesData, requir
                                     <h3 className="font-bold text-lg flex-grow">{item.name}</h3>
                                     {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                                 </div>
-                                <div className="mt-3 flex items-center gap-2 text-sm">
-                                    <Settings size={16} className="text-gray-600" />
-                                    <label htmlFor={`req-priority-${item.id}`} className="font-medium text-gray-700">Course Priority:</label>
-                                    <input
-                                        type="number"
-                                        id={`req-priority-${item.id}`}
-                                        title="Set overall priority for this course requirement (1 is highest)"
-                                        value={item.priority}
-                                        onChange={e => handleUpdateRequirement(item.id, { priority: parseInt(e.target.value) || 100 })}
-                                        className="w-20 p-1 border rounded-md text-center"
-                                    />
-                                </div>
+                                {!item.isCustom && (
+                                    <div className="mt-3 flex items-center gap-2 text-sm">
+                                        <Settings size={16} className="text-gray-600" />
+                                        <label htmlFor={`req-priority-${item.id}`} className="font-medium text-gray-700">Course Priority:</label>
+                                        <input
+                                            type="number"
+                                            id={`req-priority-${item.id}`}
+                                            title="Set overall priority for this course requirement (1 is highest)"
+                                            value={item.priority}
+                                            onChange={e => handleUpdateRequirement(item.id, { priority: parseInt(e.target.value) || 100 })}
+                                            className="w-20 p-1 border rounded-md text-center"
+                                        />
+                                    </div>
+                                )}
                             </div>
                             {isExpanded && (
                                 <div className="space-y-2 p-3">
@@ -106,9 +117,10 @@ export const Step2_SelectSections = ({ allCoursesData, setAllCoursesData, requir
                                                 conflictText={conflictText}
                                                 onToggleSelect={(checked) => handleToggleSection(item.id, section, checked)}
                                                 onUpdate={(updates) => handleUpdateSection(section, updates)}
+                                                onEdit={() => openCustomClassModal(section)}
                                             />
                                         );
-                                    }) : <p className="text-sm text-gray-500 text-center p-4">No sections available.</p>}
+                                    }) : <p className="text-sm text-gray-500 text-center p-4">No sections available for this course.</p>}
                                 </div>
                             )}
                         </div>

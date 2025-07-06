@@ -10,6 +10,7 @@ import { Step1_CourseSelection } from './components/Step1_CourseSelection';
 import { Step2_SelectSections } from './components/Step2_SelectSections';
 import { Step3_Export } from './components/Step3_Export';
 import { GroupModal } from './components/GroupModal';
+import { CustomClassModal } from './components/CustomClassModal';
 import type { Requirement, Schedule, AppStep, CourseSection } from './types';
 
 export default function App() {
@@ -18,21 +19,19 @@ export default function App() {
     const [step, setStep] = useState<AppStep>(1);
     const [requiredItems, setRequiredItems] = useState<Requirement[]>([]);
     const [selectedSections, setSelectedSections] = useState<Schedule>({});
-    const [isGroupModalOpen, setGroupModalOpen] = useState(false);
     
+    // State for modals
+    const [isGroupModalOpen, setGroupModalOpen] = useState(false);
+    const [isCustomClassModalOpen, setCustomClassModalOpen] = useState(false);
+    const [editingClass, setEditingClass] = useState<CourseSection | null>(null);
+
     const [generatedSchedules, setGeneratedSchedules] = useState<Schedule[]>([]);
     const [currentScheduleIndex, setCurrentScheduleIndex] = useState(0);
-
-    // CORRECTED: Added a state flag to ensure the preset group is added only once.
-    // This prevents the unstable re-render cycle that was causing the crash.
     const [presetGroupAdded, setPresetGroupAdded] = useState(false);
 
     useEffect(() => {
-        // Guard against running before data is loaded or if the group has already been added.
         if (allCoursesData.length === 0 || presetGroupAdded) return;
-
         const ieSections = allCoursesData.filter(c => c.Section.endsWith('.i'));
-        
         if (ieSections.length > 0) {
             const ieCourseCodes = [...new Set(ieSections.map(c => c['Subject Code']))];
             const ieGroup: Requirement = {
@@ -43,12 +42,10 @@ export default function App() {
                 priority: 100,
                 excluded: false,
             };
-            
-            // Add the new group and set the flag to true to prevent this from running again.
             setRequiredItems(prevItems => [ieGroup, ...prevItems]);
             setPresetGroupAdded(true);
         }
-    }, [allCoursesData, presetGroupAdded]); // Dependency array is now stable.
+    }, [allCoursesData, presetGroupAdded]);
 
     const calendarEvents = useMemo(() => {
         return Object.values(selectedSections).flatMap(parseCourseToEvents);
@@ -66,7 +63,49 @@ export default function App() {
         setRequiredItems(prev => [...prev, newGroup]);
     };
     
+    const handleOpenCustomClassModal = (classToEdit: CourseSection | null = null) => {
+        setEditingClass(classToEdit);
+        setCustomClassModalOpen(true);
+    };
+
+    const handleSaveCustomClass = (customClassData: CourseSection) => {
+        if (editingClass) { // Editing an existing custom class
+            setAllCoursesData(prev => prev.map(c => 
+                (c.isCustom && c["Subject Code"] === editingClass["Subject Code"] && c.Section === editingClass.Section) 
+                ? customClassData 
+                : c
+            ));
+            setSelectedSections(prev => {
+                const newSelections = {...prev};
+                for (const reqId in newSelections) {
+                    if (newSelections[reqId]["Subject Code"] === editingClass["Subject Code"] && newSelections[reqId].Section === editingClass.Section) {
+                        newSelections[reqId] = customClassData;
+                    }
+                }
+                return newSelections;
+            });
+        } else { // Creating a new custom class
+            const newRequirement: Requirement = {
+                id: `custom_${customClassData["Subject Code"]}_${customClassData.Section}`,
+                type: 'course',
+                name: `${customClassData["Subject Code"]} (Custom)`,
+                priority: 50,
+                excluded: false,
+                isCustom: true,
+            };
+            
+            setAllCoursesData(prev => [...prev, customClassData]);
+            setRequiredItems(prev => [...prev, newRequirement]);
+            setSelectedSections(prev => ({
+                ...prev,
+                [newRequirement.id]: { ...customClassData, isLocked: true }
+            }));
+        }
+        setEditingClass(null);
+    };
+
     const runAutoScheduler = () => {
+        // ... (existing auto-scheduler logic remains the same)
         const lockedSelections: Schedule = {};
         const requirementsToSchedule: Requirement[] = [];
 
@@ -84,6 +123,9 @@ export default function App() {
         const getSectionsForId = (id: string): CourseSection[] => {
             const item = requiredItems.find(r => r.id === id);
             if (!item) return [];
+            if (item.isCustom) {
+                 return allCoursesData.filter(c => c.isCustom && `custom_${c["Subject Code"]}_${c.Section}` === id);
+            }
             const courseCodes = item.type === 'group' ? item.courses : [item.id];
             return allCoursesData.filter(c => courseCodes?.includes(c["Subject Code"]));
         };
@@ -168,11 +210,10 @@ export default function App() {
         });
     }, [requiredItems]);
 
-
     const renderStep = () => {
         switch (step) {
             case 1:
-                return <Step1_CourseSelection uniqueCourses={uniqueCourses} requiredItems={requiredItems} setRequiredItems={setRequiredItems} setStep={setStep} openGroupModal={() => setGroupModalOpen(true)} />;
+                return <Step1_CourseSelection uniqueCourses={uniqueCourses} requiredItems={requiredItems} setRequiredItems={setRequiredItems} setStep={setStep} openGroupModal={() => setGroupModalOpen(true)} openCustomClassModal={() => handleOpenCustomClassModal()} />;
             case 2:
                 return <Step2_SelectSections 
                     allCoursesData={allCoursesData} 
@@ -185,12 +226,13 @@ export default function App() {
                     runAutoScheduler={runAutoScheduler} 
                     generatedSchedules={generatedSchedules} 
                     currentScheduleIndex={currentScheduleIndex} 
-                    setCurrentScheduleIndex={setCurrentScheduleIndex} 
+                    setCurrentScheduleIndex={setCurrentScheduleIndex}
+                    openCustomClassModal={handleOpenCustomClassModal}
                 />;
             case 3:
                 return <Step3_Export selectedSections={selectedSections} setStep={setStep} />;
             default:
-                return <Step1_CourseSelection uniqueCourses={uniqueCourses} requiredItems={requiredItems} setRequiredItems={setRequiredItems} setStep={setStep} openGroupModal={() => setGroupModalOpen(true)} />;
+                return <Step1_CourseSelection uniqueCourses={uniqueCourses} requiredItems={requiredItems} setRequiredItems={setRequiredItems} setStep={setStep} openGroupModal={() => setGroupModalOpen(true)} openCustomClassModal={() => handleOpenCustomClassModal()} />;
         }
     };
     
@@ -206,6 +248,7 @@ export default function App() {
     return (
         <div className="flex h-screen overflow-hidden bg-gray-100 font-sans text-gray-800">
             <GroupModal isOpen={isGroupModalOpen} onClose={() => setGroupModalOpen(false)} uniqueCourses={uniqueCourses} onSave={handleSaveGroup} />
+            <CustomClassModal isOpen={isCustomClassModalOpen} onClose={() => setCustomClassModalOpen(false)} onSave={handleSaveCustomClass} initialData={editingClass} />
             
             <aside className="w-full md:w-1/3 max-w-lg bg-white border-r border-gray-200 flex flex-col">
                 <div className="p-4 border-b border-gray-200 flex-shrink-0">
@@ -225,13 +268,13 @@ export default function App() {
                         initialView="timeGridWeek"
                         headerToolbar={false}
                         allDaySlot={false}
-                        hiddenDays={[0]} // Hide Sunday
+                        hiddenDays={[0]}
                         slotMinTime="07:00:00"
                         slotMaxTime="22:00:00"
                         height="100%"
                         events={calendarEvents}
                         eventTimeFormat={{ hour: 'numeric', minute: '2-digit', meridiem: 'short' }}
-                        firstDay={1} // Start week on Monday
+                        firstDay={1}
                         contentHeight="auto"
                     />
                 </div>
