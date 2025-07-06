@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { Coffee, ArrowLeft, Eye, Moon, Sun } from 'lucide-react';
+import { Coffee, ArrowLeft, Eye, Moon, Sun, ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
 
 import { useCourses } from './hooks/useCourses';
 import { parseCourseToEvents } from './utils/calendarUtils';
@@ -37,7 +37,7 @@ export default function App() {
     const [step, setStep] = useState<AppStep>(1);
     const [requiredItems, setRequiredItems] = useState<Requirement[]>([]);
     const [selectedSections, setSelectedSections] = useState<Schedule>({});
-    // State for modals
+    
     const [isGroupModalOpen, setGroupModalOpen] = useState(false);
     const [isCustomClassModalOpen, setCustomClassModalOpen] = useState(false);
     const [isAboutModalOpen, setAboutModalOpen] = useState(false);
@@ -51,11 +51,14 @@ export default function App() {
     const [isCalendarVisible, setCalendarVisible] = useState(false);
     const [theme, setTheme] = useTheme();
 
+    const [slotMinTime, setSlotMinTime] = useState("07:00:00");
+    const [slotMaxTime, setSlotMaxTime] = useState("22:00:00");
+
     useEffect(() => {
         const timer = setTimeout(() => {
             setStartSunburstAnimation(true);
-        }, 10000); // 10 seconds
-        return () => clearTimeout(timer); // Cleanup timer on unmount
+        }, 10000); 
+        return () => clearTimeout(timer);
     }, []);
 
     const toggleTheme = () => {
@@ -84,6 +87,8 @@ export default function App() {
         return Object.values(selectedSections).flatMap(parseCourseToEvents);
     }, [selectedSections]);
 
+    // ... (rest of the handler functions like handleSaveGroup, runAutoScheduler, etc. remain the same) ...
+    
     const handleSaveGroup = (groupName: string, courseCodes: string[]) => {
         const newGroup: Requirement = {
             id: `group_${Date.now()}`, type: 'group', name: groupName,
@@ -289,9 +294,18 @@ export default function App() {
                     </div>
                 </aside>
 
-                <main className={`${isCalendarVisible ? 'flex' : 'hidden'} md:flex flex-1 flex-col bg-gray-50 dark:bg-gray-950`}>
-                    <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex justify-between items-center">
+                <main className={`${isCalendarVisible ? 'flex' : 'hidden'} md:flex flex-1 flex-col bg-gray-100 dark:bg-gray-900`}>
+                    <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-3 flex-wrap justify-between items-center gap-3 flex">
                         <h2 className="text-xl font-bold">Weekly Schedule Preview</h2>
+                        <div className="flex items-center gap-2 text-sm">
+                            <label htmlFor="start-time">Start:</label>
+                            <input type="time" id="start-time" value={slotMinTime} onChange={e => setSlotMinTime(e.target.value)} className="p-1 border rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600"/>
+                            <label htmlFor="end-time">End:</label>
+                            <input type="time" id="end-time" value={slotMaxTime} onChange={e => setSlotMaxTime(e.target.value)} className="p-1 border rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600"/>
+                            <button title="Reset time range" onClick={() => { setSlotMinTime("07:00:00"); setSlotMaxTime("22:00:00"); }} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full">
+                                <RefreshCw size={16}/>
+                            </button>
+                        </div>
                         <button
                             onClick={() => setCalendarVisible(false)}
                             className="md:hidden bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 py-1.5 px-3 rounded-md font-semibold flex items-center gap-2 text-sm"
@@ -299,20 +313,22 @@ export default function App() {
                             <ArrowLeft size={16} /> Back
                         </button>
                     </header>
-                    <div className="flex-1 p-4 relative">
-                        <FullCalendar
-                            plugins={[timeGridPlugin, interactionPlugin]}
-                            initialView="timeGridWeek"
-                            headerToolbar={false}
-                            allDaySlot={false}
-                            hiddenDays={[0]}
-                            slotMinTime="07:00:00"
-                            slotMaxTime="22:00:00"
-                            events={calendarEvents}
-                            eventTimeFormat={{ hour: 'numeric', minute: '2-digit', meridiem: 'short' }}
-                            firstDay={1}
-                            height="100%"
-                         />
+                    <div className="flex-1 relative">
+                        <div className="absolute inset-0 p-4">
+                            <FullCalendar
+                                plugins={[timeGridPlugin, interactionPlugin]}
+                                initialView="timeGridWeek"
+                                headerToolbar={false}
+                                allDaySlot={false}
+                                hiddenDays={[0]}
+                                slotMinTime={slotMinTime}
+                                slotMaxTime={slotMaxTime}
+                                events={calendarEvents}
+                                eventTimeFormat={{ hour: 'numeric', minute: '2-digit', meridiem: 'short' }}
+                                firstDay={1}
+                                height="100%"
+                            />
+                        </div>
                     </div>
                 </main>
             </div>

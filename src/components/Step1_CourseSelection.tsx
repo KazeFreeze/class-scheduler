@@ -50,7 +50,7 @@ export const Step1_CourseSelection = ({ uniqueCourses, requiredItems, setRequire
                 <input
                     type="text"
                     placeholder="Search available courses..."
-                    className="w-full p-2 pl-8 border rounded-md"
+                    className="w-full p-2 pl-8 border rounded-md bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -63,7 +63,7 @@ export const Step1_CourseSelection = ({ uniqueCourses, requiredItems, setRequire
                         : { code: item.name, title: `Group: ${item.courses?.join(', ')}` };
                     
                     if (!course) return null;
-                    
+
                     return (
                         <CourseItem 
                             key={item.id} 
@@ -77,7 +77,7 @@ export const Step1_CourseSelection = ({ uniqueCourses, requiredItems, setRequire
                     );
                 })}
                 
-                <hr className="my-2 border-dashed" />
+                <hr className="my-2 border-dashed border-gray-300 dark:border-gray-600" />
 
                 {filteredAndSortedCourses.map(course => (
                     <CourseItem 
@@ -91,16 +91,16 @@ export const Step1_CourseSelection = ({ uniqueCourses, requiredItems, setRequire
                     />
                 ))}
             </div>
-            <div className="mt-4 pt-4 border-t border-gray-200 flex-shrink-0 flex flex-col gap-2">
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col gap-2">
                 <div className="grid grid-cols-2 gap-2">
-                    <button onClick={openGroupModal} className="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 text-sm font-medium flex items-center justify-center gap-2">
+                    <button onClick={openGroupModal} className="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 text-sm font-medium flex items-center justify-center gap-2">
                         <Users size={16} />Create Group
                     </button>
-                    <button onClick={openCustomClassModal} className="w-full bg-purple-100 text-purple-800 py-2 px-4 rounded-md hover:bg-purple-200 text-sm font-medium flex items-center justify-center gap-2">
+                    <button onClick={openCustomClassModal} className="w-full bg-purple-100 text-purple-800 py-2 px-4 rounded-md hover:bg-purple-200 dark:bg-purple-900/40 dark:text-purple-300 dark:hover:bg-purple-900/60 text-sm font-medium flex items-center justify-center gap-2">
                         <Edit size={16} /> Add Custom
                     </button>
                 </div>
-                <button onClick={() => setStep(2)} disabled={requiredItems.length === 0} className="w-full bg-blue-600 text-white py-2.5 px-4 rounded-md hover:bg-blue-700 font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                <button onClick={() => setStep(2)} disabled={requiredItems.length === 0} className="w-full bg-blue-600 text-white py-2.5 px-4 rounded-md hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 font-semibold disabled:bg-gray-400 disabled:dark:bg-gray-500 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                     Next: Configure Schedule <ArrowRight size={16} />
                 </button>
             </div>
