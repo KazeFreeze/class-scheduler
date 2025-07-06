@@ -18,6 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // --- UI ELEMENTS ---
   const sidebarStep1 = document.getElementById("sidebar-step-1");
   const sidebarStep2 = document.getElementById("sidebar-step-2");
+  const sidebarStep3 = document.getElementById("sidebar-step-3");
   const sidebarSubtitle = document.getElementById("sidebar-subtitle");
 
   const availableCourseSearch = document.getElementById(
@@ -32,8 +33,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const createGroupBtn = document.getElementById("create-group-btn");
   const autoScheduleBtn = document.getElementById("auto-schedule-btn");
-  const nextStepBtn = document.getElementById("next-step-btn");
-  const backStepBtn = document.getElementById("back-step-btn");
+
+  // Navigation Buttons
+  const nextStep1Btn = document.getElementById("next-step-1-btn");
+  const nextStep2Btn = document.getElementById("next-step-2-btn");
+  const backStep2Btn = document.getElementById("back-step-2-btn");
+  const backStep3Btn = document.getElementById("back-step-3-btn");
+  const exportScheduleBtn = document.getElementById("export-schedule-btn");
 
   // Group Modal Elements
   const groupModal = document.getElementById("group-modal");
@@ -86,17 +92,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- MAIN RENDER FUNCTION (VIEW ROUTER) ---
   function renderSidebar() {
+    // Hide all steps first
+    sidebarStep1.classList.add("hidden");
+    sidebarStep2.classList.add("hidden");
+    sidebarStep3.classList.add("hidden");
+
     if (currentStep === 1) {
       sidebarSubtitle.textContent = "Step 1: Select your required courses.";
       sidebarStep1.classList.remove("hidden");
-      sidebarStep2.classList.add("hidden");
       renderStep1_SelectCourses();
-    } else {
-      // currentStep === 2
+    } else if (currentStep === 2) {
       sidebarSubtitle.textContent = "Step 2: Choose sections for each course.";
-      sidebarStep1.classList.add("hidden");
       sidebarStep2.classList.remove("hidden");
       renderStep2_SelectSections();
+    } else {
+      // currentStep === 3
+      sidebarSubtitle.textContent =
+        "Step 3: Finalize and export your schedule.";
+      sidebarStep3.classList.remove("hidden");
     }
     updateAutoScheduleButton();
   }
@@ -105,7 +118,6 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderStep1_SelectCourses(filter = "") {
     availableCoursesList.innerHTML = "";
 
-    // Render selected items at the top
     requiredItems.forEach((item) => {
       const course = uniqueCourses.get(item.id) || {
         code: item.name,
@@ -127,16 +139,23 @@ document.addEventListener("DOMContentLoaded", () => {
       availableCoursesList.prepend(itemEl);
     });
 
-    // Render unselected, filtered items
     const sortedCourses = [...uniqueCourses.values()].sort((a, b) =>
       a.code.localeCompare(b.code)
     );
-    const filteredCourses = sortedCourses.filter(
-      (course) =>
-        !requiredItems.has(course.code) &&
-        (course.code.toLowerCase().includes(filter.toLowerCase()) ||
-          course.title.toLowerCase().includes(filter.toLowerCase()))
+    let filteredCourses = sortedCourses.filter(
+      (course) => !requiredItems.has(course.code)
     );
+
+    if (filter) {
+      filteredCourses = filteredCourses.filter(
+        (course) =>
+          course.code.toLowerCase().includes(filter.toLowerCase()) ||
+          course.title.toLowerCase().includes(filter.toLowerCase())
+      );
+    } else {
+      // [Feature 1] Only show 5 results if search bar is empty
+      filteredCourses = filteredCourses.slice(0, 5);
+    }
 
     filteredCourses.forEach((course) => {
       const item = document.createElement("div");
@@ -152,17 +171,16 @@ document.addEventListener("DOMContentLoaded", () => {
       availableCoursesList.appendChild(item);
     });
 
-    nextStepBtn.disabled = requiredItems.size === 0;
+    nextStep1Btn.disabled = requiredItems.size === 0;
   }
 
   // --- STEP 2 RENDER ---
   function renderStep2_SelectSections() {
-    requiredCoursesContainer.innerHTML = ""; // Clear previous content
+    requiredCoursesContainer.innerHTML = "";
 
     requiredItems.forEach((item) => {
       const container = document.createElement("div");
       container.className = "mb-4 bg-gray-50 rounded-lg border";
-
       const isExpanded = item.isExpanded === undefined ? true : item.isExpanded;
 
       container.innerHTML = `
@@ -178,28 +196,35 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const sectionList = document.createElement("div");
       sectionList.className = "section-list-container space-y-2 p-3";
-      if (!isExpanded) {
-        sectionList.classList.add("hidden");
-      }
+      if (!isExpanded) sectionList.classList.add("hidden");
 
       const sections = getSectionsForId(item.id);
       const currentlySelectedSection = selectedSections.get(item.id);
 
       if (sections.length === 0) {
-        sectionList.innerHTML = `<p class="text-sm text-gray-500 text-center">No sections available for this course.</p>`;
+        sectionList.innerHTML = `<p class="text-sm text-gray-500 text-center">No sections available.</p>`;
       } else {
         sections.forEach((section) => {
           const isSelected =
             currentlySelectedSection &&
             currentlySelectedSection.Section === section.Section;
-          const isConflict = !isSelected && checkForConflict(section, item.id);
+          // [Feature 3] Check for conflict, which now returns the conflicting section object or null
+          const conflictingSection = !isSelected
+            ? checkForConflict(section, item.id)
+            : null;
 
           const sectionDiv = document.createElement("div");
           sectionDiv.className = `section-item ${
             isSelected ? "selected" : ""
-          } ${isConflict ? "conflict" : ""}`;
+          } ${conflictingSection ? "conflict" : ""}`;
           sectionDiv.dataset.itemId = item.id;
-          sectionDiv.dataset.sectionJson = JSON.stringify(section); // Store full section data
+          sectionDiv.dataset.sectionJson = JSON.stringify(section);
+
+          let conflictIndicator = "";
+          if (conflictingSection) {
+            const conflictText = `Conflicts with ${conflictingSection["Subject Code"]} (${conflictingSection.Section})`;
+            conflictIndicator = `<i class="fas fa-exclamation-triangle text-red-500 cursor-help" title="${conflictText}"></i>`;
+          }
 
           sectionDiv.innerHTML = `
                       <div class="flex justify-between items-center">
@@ -211,9 +236,12 @@ document.addEventListener("DOMContentLoaded", () => {
                                 section.Instructor
                               } | Room: ${section.Room}</p>
                           </div>
-                          <input type="checkbox" class="section-checkbox w-5 h-5" ${
-                            isSelected ? "checked" : ""
-                          } ${isConflict ? "disabled" : ""}>
+                          <div class="flex items-center gap-3">
+                              ${conflictIndicator}
+                              <input type="checkbox" class="section-checkbox w-5 h-5" ${
+                                isSelected ? "checked" : ""
+                              } ${conflictingSection ? "disabled" : ""}>
+                          </div>
                       </div>
                   `;
           sectionList.appendChild(sectionDiv);
@@ -227,12 +255,20 @@ document.addEventListener("DOMContentLoaded", () => {
   // --- EVENT HANDLERS & LOGIC ---
 
   // Navigation
-  nextStepBtn.addEventListener("click", () => {
+  nextStep1Btn.addEventListener("click", () => {
     currentStep = 2;
     renderSidebar();
   });
-  backStepBtn.addEventListener("click", () => {
+  nextStep2Btn.addEventListener("click", () => {
+    currentStep = 3;
+    renderSidebar();
+  });
+  backStep2Btn.addEventListener("click", () => {
     currentStep = 1;
+    renderSidebar();
+  });
+  backStep3Btn.addEventListener("click", () => {
+    currentStep = 2;
     renderSidebar();
   });
 
@@ -257,9 +293,7 @@ document.addEventListener("DOMContentLoaded", () => {
       renderStep1_SelectCourses(availableCourseSearch.value);
     } else if (itemBody) {
       const courseCode = itemBody.dataset.courseCode;
-      if (courseCode) {
-        toggleRequiredCourse(courseCode);
-      }
+      if (courseCode) toggleRequiredCourse(courseCode);
     }
   });
 
@@ -286,7 +320,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   function toggleRequiredCourse(courseCode) {
-    const courseInfo = uniqueCourses.get(courseCode);
     requiredItems.set(courseCode, {
       id: courseCode,
       type: "course",
@@ -311,43 +344,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (isSelected) {
       const currentlySelected = selectedSections.get(itemId);
-      if (currentlySelected) {
+      if (currentlySelected)
         removeEventFromCalendar(
           `${currentlySelected["Subject Code"]}-${currentlySelected.Section}`
         );
-      }
-      selectedSections.set(itemId, { ...section, isLocked: true }); // Lock manual selections
+      selectedSections.set(itemId, { ...section, isLocked: true });
       addEventToCalendar(section);
     } else {
       selectedSections.delete(itemId);
       removeEventFromCalendar(sectionIdentifier);
     }
-    renderStep2_SelectSections(); // Re-render to update styles and conflicts
+    renderStep2_SelectSections();
   }
 
   function getSectionTimes(section) {
     const times = [];
     const timeStr = section.Time;
     if (!timeStr || String(timeStr).toLowerCase().includes("tba")) return [];
-
     const daysMap = { M: 1, T: 2, W: 3, TH: 4, F: 5, S: 6 };
     const dayTimeParts = String(timeStr)
       .split(";")
       .map((s) => s.trim());
-
     dayTimeParts.forEach((part) => {
       const timeMatch = part.match(
         /(\d{1,2}):?(\d{2})\s*-\s*(\d{1,2}):?(\d{2})/
       );
       if (!timeMatch) return;
-
       const start =
         parseInt(timeMatch[1], 10) * 60 + parseInt(timeMatch[2], 10);
       const end = parseInt(timeMatch[3], 10) * 60 + parseInt(timeMatch[4], 10);
-
       const dayStrMatch = part.match(/^([A-Z]+)/);
       if (!dayStrMatch) return;
-
       const dayStr = dayStrMatch[1];
       let i = 0;
       while (i < dayStr.length) {
@@ -366,23 +393,22 @@ document.addEventListener("DOMContentLoaded", () => {
     return times;
   }
 
+  // [Feature 3] Modified to return the conflicting section object
   function checkForConflict(sectionToCheck, requirementIdToIgnore) {
     const sectionTimes = getSectionTimes(sectionToCheck);
-    if (sectionTimes.length === 0) return false;
-
+    if (sectionTimes.length === 0) return null;
     for (const [reqId, selectedSection] of selectedSections.entries()) {
       if (reqId === requirementIdToIgnore) continue;
-
       const existingTimes = getSectionTimes(selectedSection);
       for (const t1 of sectionTimes) {
         for (const t2 of existingTimes) {
           if (t1.day === t2.day && t1.start < t2.end && t1.end > t2.start) {
-            return true;
+            return selectedSection; // Return the object that conflicts
           }
         }
       }
     }
-    return false;
+    return null; // No conflict
   }
 
   function updateAutoScheduleButton() {
@@ -413,7 +439,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const sortedCourses = [...uniqueCourses.values()].sort((a, b) =>
       a.code.localeCompare(b.code)
     );
-
     const searchResults = sortedCourses
       .filter((course) => !tempGroupCourses.has(course.code))
       .filter(
@@ -421,10 +446,8 @@ document.addEventListener("DOMContentLoaded", () => {
           course.code.toLowerCase().includes(filter) ||
           course.title.toLowerCase().includes(filter)
       );
-
     const displayList =
       filter === "" ? searchResults.slice(0, 10) : searchResults;
-
     displayList.forEach((course) => {
       const div = document.createElement("div");
       div.className = "p-2 hover:bg-gray-100 cursor-pointer rounded";
@@ -436,7 +459,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       groupModalSearchResults.appendChild(div);
     });
-
     groupModalSelectedList.innerHTML = "";
     groupItemCount.textContent = tempGroupCourses.size;
     tempGroupCourses.forEach((course) => {
@@ -462,7 +484,6 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("Please provide a group name and add at least one course.");
       return;
     }
-
     const groupId = `group_${Date.now()}`;
     requiredItems.set(groupId, {
       id: groupId,
@@ -472,18 +493,16 @@ document.addEventListener("DOMContentLoaded", () => {
       courses: [...tempGroupCourses.keys()],
       isExpanded: true,
     });
-
     renderSidebar();
     closeGroupModal();
   });
 
-  // --- AUTO-SCHEDULER LOGIC ---
+  // --- AUTO-SCHEDULER & EXPORT LOGIC ---
   autoScheduleBtn.addEventListener("click", runAutoScheduler);
 
   function runAutoScheduler() {
     const lockedSelections = new Map();
     const requirementsToSchedule = [];
-
     requiredItems.forEach((req) => {
       const selected = selectedSections.get(req.id);
       if (selected && selected.isLocked) {
@@ -492,7 +511,6 @@ document.addEventListener("DOMContentLoaded", () => {
         requirementsToSchedule.push(req);
       }
     });
-
     selectedSections.forEach((section, reqId) => {
       if (!section.isLocked) {
         removeEventFromCalendar(
@@ -501,19 +519,16 @@ document.addEventListener("DOMContentLoaded", () => {
         selectedSections.delete(reqId);
       }
     });
-
     const sortedRequirements = requirementsToSchedule.sort(
       (a, b) => a.priority - b.priority
     );
     const sectionsByRequirement = new Map();
-
     sortedRequirements.forEach((req) => {
       const sections = getSectionsForId(req.id)
         .filter((s) => !s.excluded)
         .sort((a, b) => (a.priority || 100) - (b.priority || 100));
       sectionsByRequirement.set(req.id, sections);
     });
-
     generatedSchedules = [];
     findSchedules(
       0,
@@ -521,7 +536,6 @@ document.addEventListener("DOMContentLoaded", () => {
       sectionsByRequirement,
       lockedSelections
     );
-
     if (generatedSchedules.length > 0) {
       currentScheduleIndex = 0;
       displayGeneratedSchedule();
@@ -544,10 +558,8 @@ document.addEventListener("DOMContentLoaded", () => {
       generatedSchedules.push(new Map(currentSchedule));
       return;
     }
-
     const req = requirements[reqIndex];
     const possibleSections = sectionsByRequirement.get(req.id);
-
     for (const section of possibleSections) {
       if (!isScheduleConflict(section, currentSchedule)) {
         currentSchedule.set(req.id, section);
@@ -557,42 +569,36 @@ document.addEventListener("DOMContentLoaded", () => {
           sectionsByRequirement,
           currentSchedule
         );
-        currentSchedule.delete(req.id); // backtrack
+        currentSchedule.delete(req.id);
       }
     }
   }
 
   function isScheduleConflict(sectionToCheck, schedule) {
     const sectionTimes = getSectionTimes(sectionToCheck);
-    if (sectionTimes.length === 0) return false;
-
+    if (sectionTimes.length === 0) return null;
     for (const selectedSection of schedule.values()) {
       const existingTimes = getSectionTimes(selectedSection);
       for (const t1 of sectionTimes) {
         for (const t2 of existingTimes) {
           if (t1.day === t2.day && t1.start < t2.end && t1.end > t2.start) {
-            return true;
+            return selectedSection;
           }
         }
       }
     }
-    return false;
+    return null;
   }
 
   function displayGeneratedSchedule() {
     if (generatedSchedules.length === 0) return;
-
     const scheduleMap = generatedSchedules[currentScheduleIndex];
     selectedSections = new Map(scheduleMap);
-
-    const scheduleArray = Array.from(scheduleMap.values());
-    displaySchedule(scheduleArray);
-
+    displaySchedule(Array.from(scheduleMap.values()));
     document.getElementById("schedule-actions").classList.remove("hidden");
     document.getElementById("schedule-counter").textContent = `${
       currentScheduleIndex + 1
     } of ${generatedSchedules.length}`;
-
     renderStep2_SelectSections();
   }
 
@@ -609,5 +615,78 @@ document.addEventListener("DOMContentLoaded", () => {
     currentScheduleIndex =
       (currentScheduleIndex + 1) % generatedSchedules.length;
     displayGeneratedSchedule();
+  });
+
+  // [Feature 2] ICS Export Logic
+  exportScheduleBtn.addEventListener("click", () => {
+    const cal = ics();
+    const startDate = document.getElementById("start-date").value;
+    const endDate = document.getElementById("end-date").value;
+
+    if (!startDate || !endDate) {
+      alert("Please select a start and end date for the schedule.");
+      return;
+    }
+
+    const dayMap = { M: "MO", T: "TU", W: "WE", TH: "TH", F: "FR", S: "SA" };
+
+    selectedSections.forEach((section) => {
+      const timeStr = section.Time;
+      if (!timeStr || String(timeStr).toLowerCase().includes("tba")) return;
+
+      const dayTimeParts = String(timeStr)
+        .split(";")
+        .map((s) => s.trim());
+
+      dayTimeParts.forEach((part) => {
+        const timeMatch = part.match(
+          /(\d{1,2}):?(\d{2})\s*-\s*(\d{1,2}):?(\d{2})/
+        );
+        if (!timeMatch) return;
+
+        const startHour = timeMatch[1];
+        const startMinute = timeMatch[2];
+        const endHour = timeMatch[3];
+        const endMinute = timeMatch[4];
+
+        const dayStrMatch = part.match(/^([A-Z]+)/);
+        if (!dayStrMatch) return;
+
+        const days = [];
+        const dayStr = dayStrMatch[1];
+        let i = 0;
+        while (i < dayStr.length) {
+          let dayChar = dayStr[i];
+          if (
+            dayChar === "T" &&
+            i + 1 < dayStr.length &&
+            dayStr[i + 1] === "H"
+          ) {
+            days.push(dayMap["TH"]);
+            i += 2;
+          } else if (dayMap[dayChar]) {
+            days.push(dayMap[dayChar]);
+            i += 1;
+          } else {
+            i++;
+          }
+        }
+
+        cal.addEvent({
+          title: `${section["Subject Code"]} (${section.Section})`,
+          description: `${section["Course Title"]}\nInstructor: ${section.Instructor}`,
+          location: section.Room,
+          begin: `${startDate} ${startHour}:${startMinute}`,
+          end: `${startDate} ${endHour}:${endMinute}`,
+          rrule: {
+            freq: "WEEKLY",
+            until: endDate,
+            byday: days,
+          },
+        });
+      });
+    });
+
+    cal.download("My-Schedule");
   });
 });
