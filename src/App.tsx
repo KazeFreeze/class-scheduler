@@ -23,28 +23,36 @@ export default function App() {
     const [generatedSchedules, setGeneratedSchedules] = useState<Schedule[]>([]);
     const [currentScheduleIndex, setCurrentScheduleIndex] = useState(0);
 
-    // This effect runs once the course data is loaded from the API.
-    // It automatically creates and adds the "Interdisciplinary Elective" group.
+    // CORRECTED: This effect now safely adds the preset IE group upon loading course data.
+    // The dependency array is fixed to prevent state inconsistencies that could cause crashes.
     useEffect(() => {
-        if (allCoursesData.length > 0) {
-            const ieSections = allCoursesData.filter(c => c.Section.endsWith('.i'));
+        // Guard against running before data is loaded.
+        if (allCoursesData.length === 0) return;
+
+        // Check if the IE group already exists in the requirements to prevent duplicates.
+        const ieGroupExists = requiredItems.some(item => item.id === 'group_IE_preset');
+        if (ieGroupExists) return;
+
+        // Find all sections that are interdisciplinary electives (ending in '.i').
+        const ieSections = allCoursesData.filter(c => c.Section.endsWith('.i'));
+        
+        if (ieSections.length > 0) {
+            // Get the unique course codes for these sections.
+            const ieCourseCodes = [...new Set(ieSections.map(c => c['Subject Code']))];
+            const ieGroup: Requirement = {
+                id: 'group_IE_preset',
+                type: 'group',
+                name: 'Interdisciplinary Elective (IE)',
+                courses: ieCourseCodes,
+                priority: 100,
+                excluded: false,
+            };
             
-            // Check if there are any IE sections and if the group hasn't been added yet.
-            if (ieSections.length > 0 && !requiredItems.some(item => item.id === 'group_IE_preset')) {
-                const ieCourseCodes = [...new Set(ieSections.map(c => c['Subject Code']))];
-                const ieGroup: Requirement = {
-                    id: 'group_IE_preset',
-                    type: 'group',
-                    name: 'Interdisciplinary Elective (IE)',
-                    courses: ieCourseCodes,
-                    priority: 100,
-                    excluded: false,
-                };
-                // Add the preset group to the list of requirements.
-                setRequiredItems(prev => [ieGroup, ...prev]);
-            }
+            // Add the new group to the start of the requirements list.
+            // Using a functional update ensures we always have the latest state.
+            setRequiredItems(prevItems => [ieGroup, ...prevItems]);
         }
-    }, [allCoursesData]); // This dependency ensures the effect runs when data arrives.
+    }, [allCoursesData, requiredItems]); // Dependency array is now correct.
 
     const calendarEvents = useMemo(() => {
         return Object.values(selectedSections).flatMap(parseCourseToEvents);
@@ -120,8 +128,6 @@ export default function App() {
         const seenSchedules = new Set<string>();
 
         for (const schedule of schedules) {
-            // A unique schedule is defined by the specific set of sections it contains.
-            // This key joins the requirement ID, subject code, and section for each class.
             const scheduleKey = Object.keys(schedule).sort().map(reqId => {
                 const section = schedule[reqId];
                 return `${reqId}:${section['Subject Code']}:${section.Section}`;
