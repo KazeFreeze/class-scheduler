@@ -57,6 +57,7 @@ export default function App() {
     const [isCalendarVisible, setCalendarVisible] = useState(false);
     const [theme, setTheme] = useTheme();
     const [zoomIndex, setZoomIndex] = useState(1); // Default to Medium
+    const [sectionOverrides, setSectionOverrides] = useState<{ [key: string]: Partial<Pick<CourseSection, 'priority' | 'excluded'>> }>({});
 
     // Load state from localStorage on initial component mount
     useEffect(() => {
@@ -70,6 +71,7 @@ export default function App() {
                 if (savedState.generatedSchedules) setGeneratedSchedules(savedState.generatedSchedules);
                 if (savedState.currentScheduleIndex) setCurrentScheduleIndex(savedState.currentScheduleIndex);
                 if (savedState.zoomIndex !== undefined) setZoomIndex(savedState.zoomIndex);
+                if (savedState.sectionOverrides) setSectionOverrides(savedState.sectionOverrides);
             }
         } catch (e) {
             console.error("Could not load state from local storage", e);
@@ -87,10 +89,26 @@ export default function App() {
                 generatedSchedules,
                 currentScheduleIndex,
                 zoomIndex,
+                sectionOverrides,
             };
             localStorage.setItem('classSchedulerState', JSON.stringify(stateToSave));
         }
-    }, [step, requiredItems, selectedSections, generatedSchedules, currentScheduleIndex, zoomIndex, loading]);
+    }, [step, requiredItems, selectedSections, generatedSchedules, currentScheduleIndex, zoomIndex, sectionOverrides, loading]);
+
+    // Apply saved section overrides (priority, exclusion) after the main course data has been fetched.
+    useEffect(() => {
+        if (!loading && Object.keys(sectionOverrides).length > 0) {
+            setAllCoursesData(currentCourses =>
+                currentCourses.map(course => {
+                    const key = `${course['Subject Code']}-${course.Section}`;
+                    if (sectionOverrides[key]) {
+                        return { ...course, ...sectionOverrides[key] };
+                    }
+                    return course;
+                })
+            );
+        }
+    }, [loading, setAllCoursesData]); // Runs once after API data is loaded
 
     // Re-hydrate custom classes into the main course list after API data and localStorage have loaded
     useEffect(() => {
@@ -276,32 +294,62 @@ export default function App() {
             setSelectedSections(generatedSchedules[currentScheduleIndex]);
         }
     }, [currentScheduleIndex, generatedSchedules]);
-
+    
+    // This effect synchronizes the selected sections with the required items,
+    // preventing stale selections if a course/group is removed.
     useEffect(() => {
-        // This effect is more complex now due to persistence.
-        // We only want to clear selections if the required items have fundamentally changed,
-        // not just on initial load from localStorage.
-        // A more robust solution might involve comparing the new requiredItems with the old.
-        // For now, this simplified logic is kept.
+        if (loading) return; // Don't run on initial load before everything is ready
         const requiredIds = new Set(requiredItems.map(r => r.id));
         const newSelectedSections: Schedule = {};
-        for(const reqId in selectedSections){
-            if(requiredIds.has(reqId)){
+        let sectionsChanged = false;
+
+        for (const reqId in selectedSections) {
+            if (requiredIds.has(reqId)) {
                 newSelectedSections[reqId] = selectedSections[reqId];
+            } else {
+                sectionsChanged = true;
             }
         }
-        setSelectedSections(newSelectedSections);
-        setGeneratedSchedules([]);
-        setCurrentScheduleIndex(0);
 
-    }, [requiredItems]);
+        if (sectionsChanged || Object.keys(newSelectedSections).length !== Object.keys(selectedSections).length) {
+            setSelectedSections(newSelectedSections);
+            setGeneratedSchedules([]);
+            setCurrentScheduleIndex(0);
+        }
+    }, [requiredItems, loading]);
 
     const renderStep = () => {
         switch (step) {
             case 1:
                 return <Step1_CourseSelection uniqueCourses={uniqueCourses} requiredItems={requiredItems} setRequiredItems={setRequiredItems} setStep={setStep} openGroupModal={() => setGroupModalOpen(true)} openCustomClassModal={() => handleOpenCustomClassModal()} />;
             case 2:
-                return <Step2_SelectSections allCoursesData={allCoursesData} setAllCoursesData={setAllCoursesData} requiredItems={requiredItems} setRequiredItems={setRequiredItems} selectedSections={selectedSections} setSelectedSections={setSelectedSections} setStep={setStep} runAutoScheduler={runAutoScheduler} generatedSchedules={generatedSchedules} currentScheduleIndex={currentScheduleIndex} setCurrentScheduleIndex={setCurrentScheduleIndex} openCustomClassModal={handleOpenCustomClassModal} />;
+                const wrappedSetAllCoursesData = (updater: React.SetStateAction<CourseSection[]>) => {
+                    setAllCoursesData(prevData => {
+                        const newData = typeof updater === 'function' ? updater(prevData) : updater;
+                        
+                        const newOverrides: typeof sectionOverrides = {};
+                        let overridesChanged = false;
+
+                        const oldDataMap = new Map(prevData.map(c => [`${c['Subject Code']}-${c.Section}`, c]));
+
+                        newData.forEach(newCourse => {
+                            const key = `${newCourse['Subject Code']}-${newCourse.Section}`;
+                            const oldCourse = oldDataMap.get(key);
+                            if (oldCourse && (newCourse.priority !== oldCourse.priority || newCourse.excluded !== oldCourse.excluded)) {
+                                newOverrides[key] = { priority: newCourse.priority, excluded: newCourse.excluded };
+                                overridesChanged = true;
+                            }
+                        });
+                        
+                        if(overridesChanged) {
+                            setSectionOverrides(prevOverrides => ({...prevOverrides, ...newOverrides}));
+                        }
+
+                        return newData;
+                    });
+                };
+
+                return <Step2_SelectSections allCoursesData={allCoursesData} setAllCoursesData={wrappedSetAllCoursesData} requiredItems={requiredItems} setRequiredItems={setRequiredItems} selectedSections={selectedSections} setSelectedSections={setSelectedSections} setStep={setStep} runAutoScheduler={runAutoScheduler} generatedSchedules={generatedSchedules} currentScheduleIndex={currentScheduleIndex} setCurrentScheduleIndex={setCurrentScheduleIndex} openCustomClassModal={handleOpenCustomClassModal} />;
             case 3:
                 return <Step3_Export selectedSections={selectedSections} setStep={setStep} />;
             default:
