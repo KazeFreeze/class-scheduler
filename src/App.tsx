@@ -23,21 +23,17 @@ export default function App() {
     const [generatedSchedules, setGeneratedSchedules] = useState<Schedule[]>([]);
     const [currentScheduleIndex, setCurrentScheduleIndex] = useState(0);
 
-    // CORRECTED: This effect now safely adds the preset IE group upon loading course data.
-    // The dependency array is fixed to prevent state inconsistencies that could cause crashes.
+    // CORRECTED: Added a state flag to ensure the preset group is added only once.
+    // This prevents the unstable re-render cycle that was causing the crash.
+    const [presetGroupAdded, setPresetGroupAdded] = useState(false);
+
     useEffect(() => {
-        // Guard against running before data is loaded.
-        if (allCoursesData.length === 0) return;
+        // Guard against running before data is loaded or if the group has already been added.
+        if (allCoursesData.length === 0 || presetGroupAdded) return;
 
-        // Check if the IE group already exists in the requirements to prevent duplicates.
-        const ieGroupExists = requiredItems.some(item => item.id === 'group_IE_preset');
-        if (ieGroupExists) return;
-
-        // Find all sections that are interdisciplinary electives (ending in '.i').
         const ieSections = allCoursesData.filter(c => c.Section.endsWith('.i'));
         
         if (ieSections.length > 0) {
-            // Get the unique course codes for these sections.
             const ieCourseCodes = [...new Set(ieSections.map(c => c['Subject Code']))];
             const ieGroup: Requirement = {
                 id: 'group_IE_preset',
@@ -48,11 +44,11 @@ export default function App() {
                 excluded: false,
             };
             
-            // Add the new group to the start of the requirements list.
-            // Using a functional update ensures we always have the latest state.
+            // Add the new group and set the flag to true to prevent this from running again.
             setRequiredItems(prevItems => [ieGroup, ...prevItems]);
+            setPresetGroupAdded(true);
         }
-    }, [allCoursesData, requiredItems]); // Dependency array is now correct.
+    }, [allCoursesData, presetGroupAdded]); // Dependency array is now stable.
 
     const calendarEvents = useMemo(() => {
         return Object.values(selectedSections).flatMap(parseCourseToEvents);
