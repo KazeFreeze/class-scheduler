@@ -9,23 +9,38 @@ interface Props {
     onToggleSelect: (isSelected: boolean) => void;
     onUpdate: (updates: Partial<CourseSection>) => void;
     onEdit: () => void;
+    showConfirm: (title: string, message: string, onConfirm: () => void) => void;
 }
 
-export const SectionItem = ({ section, isSelected, isConflicting, conflictText, onToggleSelect, onUpdate, onEdit }: Props) => {
+export const SectionItem = ({ section, isSelected, isConflicting, conflictText, onToggleSelect, onUpdate, onEdit, showConfirm }: Props) => {
     const hasNoSlots = section.Slots <= 0;
-    const isDisabled = !section.isCustom && (hasNoSlots || isConflicting);
+    // A section is only truly disabled if it's conflicting. Zero slots can be overridden.
+    const isDisabled = !section.isCustom && isConflicting;
 
-    const baseClasses = "bg-white dark:bg-gray-800 p-3 rounded-lg border dark:border-gray-700 transition-all duration-200";
+    const baseClasses = "bg-white dark:bg-gray-800 p-3 rounded-lg border dark:border-gray-700 transition-all duration-200 cursor-pointer";
     
     let selectedClasses = "border-blue-500 bg-blue-50 dark:bg-blue-900/50 ring-2 ring-blue-500";
     if (section.isCustom && isSelected) {
         selectedClasses = "border-purple-500 bg-purple-50 dark:bg-purple-900/50 ring-2 ring-purple-500";
     }
-    const disabledClasses = "bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-700 opacity-60 cursor-not-allowed";
+    // Visually indicate a disabled state for conflicting sections.
+    const disabledClasses = "opacity-60 cursor-not-allowed";
     const hoverClasses = "hover:shadow-md hover:-translate-y-0.5 hover:border-gray-400 dark:hover:border-gray-500";
 
     const handleClick = () => {
-        if (!isDisabled) {
+        if (isDisabled) return; // Prevent action on conflicting sections
+
+        // If trying to select a class with no slots that isn't already selected, show confirmation.
+        if (hasNoSlots && !isSelected && !section.isCustom) {
+            showConfirm(
+                "Override Zero Slots?",
+                "This class section has no available slots. Are you sure you want to add it to your schedule? This assumes you have already enlisted and secured a slot.",
+                () => {
+                    onToggleSelect(true); // On confirm, proceed to select the section
+                }
+            );
+        } else {
+            // Otherwise, toggle selection as normal.
             onToggleSelect(!isSelected);
         }
     };
@@ -49,7 +64,7 @@ export const SectionItem = ({ section, isSelected, isConflicting, conflictText, 
                         </div>
                     )}
                      {hasNoSlots && !section.isCustom && (
-                        <div title="No slots available for this section.">
+                        <div title="No slots available. Click to override.">
                             <XCircle className="text-red-600" size={18} />
                         </div>
                     )}
@@ -58,7 +73,7 @@ export const SectionItem = ({ section, isSelected, isConflicting, conflictText, 
                         className={`h-5 w-5 rounded border-gray-300 dark:bg-gray-900 dark:border-gray-600 focus:ring-blue-500 disabled:opacity-50 ${section.isCustom ? 'text-purple-600 focus:ring-purple-500' : 'text-blue-600'}`}
                         checked={isSelected} 
                         readOnly 
-                        disabled={isDisabled} 
+                        disabled={isDisabled || (hasNoSlots && !isSelected && !section.isCustom)} 
                     />
                 </div>
             </div>

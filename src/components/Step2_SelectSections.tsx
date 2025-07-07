@@ -17,9 +17,10 @@ interface Props {
     currentScheduleIndex: number;
     setCurrentScheduleIndex: React.Dispatch<React.SetStateAction<number>>;
     openCustomClassModal: (classToEdit: CourseSection) => void;
+    showConfirm: (title: string, message: string, onConfirm: () => void) => void;
 }
 
-export const Step2_SelectSections = ({ allCoursesData, setAllCoursesData, requiredItems, setRequiredItems, selectedSections, setSelectedSections, setStep, runAutoScheduler, generatedSchedules, currentScheduleIndex, setCurrentScheduleIndex, openCustomClassModal }: Props) => {
+export const Step2_SelectSections = ({ allCoursesData, setAllCoursesData, requiredItems, setRequiredItems, selectedSections, setSelectedSections, setStep, runAutoScheduler, generatedSchedules, currentScheduleIndex, setCurrentScheduleIndex, openCustomClassModal, showConfirm }: Props) => {
     const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(requiredItems.map(r => r.id)));
 
     const getSectionsForId = useCallback((id: string): CourseSection[] => {
@@ -118,6 +119,7 @@ export const Step2_SelectSections = ({ allCoursesData, setAllCoursesData, requir
                                                 onToggleSelect={(checked) => handleToggleSection(item.id, section, checked)}
                                                 onUpdate={(updates) => handleUpdateSection(section, updates)}
                                                 onEdit={() => openCustomClassModal(section)}
+                                                showConfirm={showConfirm}
                                             />
                                         );
                                     }) : <p className="text-sm text-gray-500 dark:text-gray-400 text-center p-4">No sections available for this course.</p>}

@@ -13,6 +13,7 @@ import { Step3_Export } from './components/Step3_Export';
 import { GroupModal } from './components/GroupModal';
 import { CustomClassModal } from './components/CustomClassModal';
 import { AlertModal } from './components/AlertModal';
+import { ConfirmModal } from './components/ConfirmModal';
 import { AboutModal } from './components/AboutModal';
 import { AlertContext } from './contexts/AlertContext';
 import type { Requirement, Schedule, AppStep, CourseSection } from './types';
@@ -49,6 +50,7 @@ export default function App() {
     const [isAboutModalOpen, setAboutModalOpen] = useState(false);
     const [editingClass, setEditingClass] = useState<CourseSection | null>(null);
     const [alertConfig, setAlertConfig] = useState<{ isOpen: boolean; title: string; message: string }>({ isOpen: false, title: '', message: '' });
+    const [confirmConfig, setConfirmConfig] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void; }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
 
     const [generatedSchedules, setGeneratedSchedules] = useState<Schedule[]>([]);
     const [currentScheduleIndex, setCurrentScheduleIndex] = useState(0);
@@ -149,6 +151,10 @@ export default function App() {
 
     const showAlert = useCallback((title: string, message: string) => {
         setAlertConfig({ isOpen: true, title, message });
+    }, []);
+
+    const showConfirm = useCallback((title: string, message: string, onConfirm: () => void) => {
+        setConfirmConfig({ isOpen: true, title, message, onConfirm });
     }, []);
 
     useEffect(() => {
@@ -349,7 +355,7 @@ export default function App() {
                     });
                 };
 
-                return <Step2_SelectSections allCoursesData={allCoursesData} setAllCoursesData={wrappedSetAllCoursesData} requiredItems={requiredItems} setRequiredItems={setRequiredItems} selectedSections={selectedSections} setSelectedSections={setSelectedSections} setStep={setStep} runAutoScheduler={runAutoScheduler} generatedSchedules={generatedSchedules} currentScheduleIndex={currentScheduleIndex} setCurrentScheduleIndex={setCurrentScheduleIndex} openCustomClassModal={handleOpenCustomClassModal} />;
+                return <Step2_SelectSections allCoursesData={allCoursesData} setAllCoursesData={wrappedSetAllCoursesData} requiredItems={requiredItems} setRequiredItems={setRequiredItems} selectedSections={selectedSections} setSelectedSections={setSelectedSections} setStep={setStep} runAutoScheduler={runAutoScheduler} generatedSchedules={generatedSchedules} currentScheduleIndex={currentScheduleIndex} setCurrentScheduleIndex={setCurrentScheduleIndex} openCustomClassModal={handleOpenCustomClassModal} showConfirm={showConfirm} />;
             case 3:
                 return <Step3_Export selectedSections={selectedSections} setStep={setStep} />;
             default:
@@ -370,6 +376,16 @@ export default function App() {
         <AlertContext.Provider value={showAlert}>
             <div className="flex h-screen overflow-hidden bg-gray-100 dark:bg-gray-900 font-sans text-gray-800 dark:text-gray-200">
                 <AlertModal isOpen={alertConfig.isOpen} onClose={() => setAlertConfig({ ...alertConfig, isOpen: false })} title={alertConfig.title} message={alertConfig.message} />
+                <ConfirmModal 
+                    isOpen={confirmConfig.isOpen} 
+                    onClose={() => setConfirmConfig({ ...confirmConfig, isOpen: false })} 
+                    title={confirmConfig.title} 
+                    message={confirmConfig.message} 
+                    onConfirm={() => {
+                        confirmConfig.onConfirm();
+                        setConfirmConfig({ ...confirmConfig, isOpen: false });
+                    }} 
+                />
                 <AboutModal isOpen={isAboutModalOpen} onClose={() => setAboutModalOpen(false)} />
                 <GroupModal isOpen={isGroupModalOpen} onClose={() => setGroupModalOpen(false)} uniqueCourses={uniqueCourses} onSave={handleSaveGroup} />
                 <CustomClassModal isOpen={isCustomClassModalOpen} onClose={() => setCustomClassModalOpen(false)} onSave={handleSaveCustomClass} initialData={editingClass} />
