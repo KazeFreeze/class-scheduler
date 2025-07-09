@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { Coffee, ArrowLeft, Eye, Moon, Sun, ZoomIn, ZoomOut } from 'lucide-react';
+import { Coffee, ArrowLeft, Eye, Moon, Sun, ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
 
 import { useCourses } from './hooks/useCourses';
 import { parseCourseToEvents } from './utils/calendarUtils';
@@ -40,7 +40,7 @@ const zoomConfigs = [
 ];
 
 export default function App() {
-    const { allCoursesData, setAllCoursesData, uniqueCourses, loading, error } = useCourses();
+    const { allCoursesData, setAllCoursesData, uniqueCourses, loading, error, refetchCourses } = useCourses();
     const [step, setStep] = useState<AppStep>(1);
     const [requiredItems, setRequiredItems] = useState<Requirement[]>([]);
     const [selectedSections, setSelectedSections] = useState<Schedule>({});
@@ -60,6 +60,8 @@ export default function App() {
     const [theme, setTheme] = useTheme();
     const [zoomIndex, setZoomIndex] = useState(1); // Default to Medium
     const [sectionOverrides, setSectionOverrides] = useState<{ [key: string]: Partial<Pick<CourseSection, 'priority' | 'excluded'>> }>({});
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
 
     // Load state from localStorage on initial component mount
     useEffect(() => {
@@ -97,6 +99,34 @@ export default function App() {
         }
     }, [step, requiredItems, selectedSections, generatedSchedules, currentScheduleIndex, zoomIndex, sectionOverrides, loading]);
 
+    const showAlert = useCallback((title: string, message: string) => {
+        setAlertConfig({ isOpen: true, title, message });
+    }, []);
+
+    // This useEffect handles validating the user's selections after a data refresh.
+    useEffect(() => {
+        if (!loading && allCoursesData.length > 0) {
+            setRequiredItems(prevItems => {
+                if (prevItems.length === 0) return prevItems;
+
+                const validCourseCodes = new Set(uniqueCourses.keys());
+                const newItems = prevItems.filter(item => {
+                    if (item.isCustom || item.type === 'group') return true;
+                    return validCourseCodes.has(item.id);
+                });
+
+                if (newItems.length < prevItems.length) {
+                    setTimeout(() => {
+                       showAlert("Courses Updated", "Some of your selected courses are no longer available and have been removed from your list.");
+                    }, 100);
+                    localStorage.removeItem('classSchedulerState');
+                }
+                return newItems;
+            });
+            setPresetGroupAdded(false);
+        }
+    }, [loading, uniqueCourses, allCoursesData.length, showAlert]);
+
     // Apply saved section overrides (priority, exclusion) after the main course data has been fetched.
     useEffect(() => {
         if (!loading && Object.keys(sectionOverrides).length > 0) {
@@ -110,7 +140,7 @@ export default function App() {
                 })
             );
         }
-    }, [loading, setAllCoursesData]); // Runs once after API data is loaded
+    }, [loading, sectionOverrides, setAllCoursesData]);
 
     // Re-hydrate custom classes into the main course list after API data and localStorage have loaded
     useEffect(() => {
@@ -133,7 +163,6 @@ export default function App() {
         }
     }, [loading, requiredItems, selectedSections, setAllCoursesData]);
 
-
     const handleZoomIn = () => setZoomIndex(prev => Math.min(prev + 1, zoomConfigs.length - 1));
     const handleZoomOut = () => setZoomIndex(prev => Math.max(prev - 1, 0));
     const currentZoom = zoomConfigs[zoomIndex];
@@ -149,13 +178,23 @@ export default function App() {
         setTheme(theme === 'light' ? 'dark' : 'light');
     };
 
-    const showAlert = useCallback((title: string, message: string) => {
-        setAlertConfig({ isOpen: true, title, message });
-    }, []);
-
     const showConfirm = useCallback((title: string, message: string, onConfirm: () => void) => {
         setConfirmConfig({ isOpen: true, title, message, onConfirm });
     }, []);
+
+    const handleRefresh = useCallback(() => {
+        if (isRefreshing || loading) return;
+
+        setIsRefreshing(true);
+        
+        refetchCourses().then(() => {
+            showAlert("Courses Reloaded", "The course list has been successfully updated.");
+        });
+
+        setTimeout(() => {
+            setIsRefreshing(false);
+        }, 5000); // 5-second cooldown
+    }, [isRefreshing, loading, refetchCourses, showAlert]);
 
     useEffect(() => {
         if (allCoursesData.length === 0 || presetGroupAdded) return;
@@ -301,10 +340,8 @@ export default function App() {
         }
     }, [currentScheduleIndex, generatedSchedules]);
     
-    // This effect synchronizes the selected sections with the required items,
-    // preventing stale selections if a course/group is removed.
     useEffect(() => {
-        if (loading) return; // Don't run on initial load before everything is ready
+        if (loading) return;
         const requiredIds = new Set(requiredItems.map(r => r.id));
         const newSelectedSections: Schedule = {};
         let sectionsChanged = false;
@@ -322,7 +359,7 @@ export default function App() {
             setGeneratedSchedules([]);
             setCurrentScheduleIndex(0);
         }
-    }, [requiredItems, loading]);
+    }, [requiredItems, loading, selectedSections]);
 
     const renderStep = () => {
         switch (step) {
@@ -369,7 +406,7 @@ export default function App() {
         3: "Step 3: Finalize and export your schedule."
     };
 
-    if (loading) return <div className="flex items-center justify-center h-screen text-xl font-semibold">Loading Course Data...</div>;
+    if (loading && !isRefreshing) return <div className="flex items-center justify-center h-screen text-xl font-semibold">Loading Course Data...</div>;
     if (error) return <div className="flex items-center justify-center h-screen text-xl font-semibold text-red-500 p-8 text-center">{error}</div>;
 
     return (
@@ -395,6 +432,14 @@ export default function App() {
                         <div className="flex justify-between items-center gap-4">
                             <h1 className="text-2xl font-bold">Class Planner</h1>
                             <div className="flex items-center gap-2">
+                                <button
+                                    onClick={handleRefresh}
+                                    disabled={isRefreshing || loading}
+                                    title="Refresh course data"
+                                    className="text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors p-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <RefreshCw size={20} className={(loading || isRefreshing) ? 'animate-spin' : ''} />
+                                </button>
                                 <button
                                     onClick={toggleTheme}
                                     title="Toggle night mode"
