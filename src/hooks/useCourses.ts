@@ -49,7 +49,7 @@ export const useCourses = () => {
         }
       });
       setUniqueCourses(newUniqueCourses);
-    } catch (e: any) => {
+    } catch (e: any) {
       setError(
         `Failed to fetch course data. Please ensure the API is running and the Gist URL is correct. Details: ${e.message}`
       );
@@ -60,7 +60,7 @@ export const useCourses = () => {
   }, []); // useCallback with an empty dependency array makes this function stable.
 
   useEffect(() => {
-    // Fire-and-forget request to the notification endpoint.
+    // Fire-and-forget request to the notification endpoint on initial load.
     fetch("/api/notifyLoad", { method: "POST" }).catch((err) => {
       // Log error to console if the notification fails, but don't bother the user.
       console.error("Failed to send load notification:", err);
@@ -69,5 +69,12 @@ export const useCourses = () => {
     fetchCourses();
   }, [fetchCourses]); // This effect runs once on mount because fetchCourses is stable.
 
-  return { allCoursesData, setAllCoursesData, uniqueCourses, loading, error, refetchCourses: fetchCourses };
+  return {
+    allCoursesData,
+    setAllCoursesData,
+    uniqueCourses,
+    loading,
+    error,
+    refetchCourses: fetchCourses,
+  };
 };
