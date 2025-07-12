@@ -13,12 +13,18 @@ export const useCourses = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchCourses = useCallback(async () => {
+  const fetchCourses = useCallback(async (forceRefresh = false) => {
     setLoading(true);
     setError(null);
     try {
-      // Add a cache-busting query parameter to ensure fresh data is fetched.
-      const response = await fetch(`/api/getClasses?t=${new Date().getTime()}`);
+      // Build the API URL with cache-busting parameters.
+      const timestamp = new Date().getTime();
+      let apiUrl = `/api/getClasses?t=${timestamp}`;
+      if (forceRefresh) {
+        apiUrl += `&force=true`;
+      }
+
+      const response = await fetch(apiUrl);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(
@@ -32,8 +38,12 @@ export const useCourses = () => {
       const coursesWithDefaults = data.courses.map(
         (c: any): CourseSection => ({
           ...c,
-          Slots: c["Free Slots"] ?? 0,
-          Remarks: c.Remarks ?? "",
+          // Map "Free Slots" from the API to the "Slots" field used in the app.
+          Slots:
+            typeof c["Free Slots"] === "string"
+              ? parseInt(c["Free Slots"], 10)
+              : c["Free Slots"] ?? 0,
+          Remarks: c.Remarks ?? "-",
           priority: 100,
           excluded: false,
         })

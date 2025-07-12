@@ -178,6 +178,7 @@ export default function App() {
         setTheme(theme === 'light' ? 'dark' : 'light');
     };
 
+
     const showConfirm = useCallback((title: string, message: string, onConfirm: () => void) => {
         setConfirmConfig({ isOpen: true, title, message, onConfirm });
     }, []);
@@ -187,13 +188,15 @@ export default function App() {
 
         setIsRefreshing(true);
         
-        refetchCourses().then(() => {
-            showAlert("Courses Reloaded", "The course list has been successfully updated.");
+        // Pass true to force a cache bypass on the server
+        refetchCourses(true).then(() => {
+            showAlert("Courses Reloaded", "The course list has been successfully updated with the latest data.");
         });
 
+        // Cooldown to prevent spamming the refresh button
         setTimeout(() => {
             setIsRefreshing(false);
-        }, 5000); // 5-second cooldown
+        }, 5000);
     }, [isRefreshing, loading, refetchCourses, showAlert]);
 
     useEffect(() => {
@@ -435,7 +438,7 @@ export default function App() {
                                 <button
                                     onClick={handleRefresh}
                                     disabled={isRefreshing || loading}
-                                    title="Refresh course data"
+                                    title="Force refresh course data"
                                     className="text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors p-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <RefreshCw size={20} className={(loading || isRefreshing) ? 'animate-spin' : ''} />
