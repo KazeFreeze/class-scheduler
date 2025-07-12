@@ -1,7 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-// Define the necessary types directly within the API route file.
-// This interface now correctly matches the structure of the source JSON data.
+// This interface correctly matches the structure of the source JSON data.
 interface CourseSection {
   "Subject Code": string;
   "Course Title": string;
@@ -9,24 +8,23 @@ interface CourseSection {
   Time: string;
   Room: string;
   Instructor: string;
-  "Free Slots"?: number; // Added to match the source JSON
-  Remarks?: string; // Added to match the source JSON
+  "Free Slots"?: number;
+  Remarks?: string;
 }
 
 export default async function handler(
   request: VercelRequest,
   response: VercelResponse
 ) {
-  // The GIST_URL should now be the standard Gist URL, not the raw file URL.
-  // e.g., https://gist.github.com/username/gist_id
   const gistUrl = process.env.GIST_URL;
+  // The new code will use a GitHub token from your environment variables if it exists.
+  const githubToken = process.env.GITHUB_TOKEN;
 
   if (!gistUrl) {
     return response.status(500).json({ error: "Gist URL is not configured." });
   }
 
   try {
-    // 1. Extract the Gist ID from the URL.
     const gistId = gistUrl.split("/").pop();
     if (!gistId) {
       throw new Error(
@@ -35,53 +33,64 @@ export default async function handler(
     }
     const gistApiUrl = `https://api.github.com/gists/${gistId}`;
 
-    // 2. Fetch Gist details from the GitHub API to find the raw URL.
-    // Note: To avoid GitHub API rate limits, you can add an Authorization header.
-    // For public gists, this is usually not an issue for moderate traffic.
-    const gistApiResponse = await fetch(gistApiUrl);
+    // Set up headers for the GitHub API request.
+    // It will include the Authorization token if you've provided one.
+    const apiHeaders: HeadersInit = {
+      Accept: "application/vnd.github.v3+json",
+    };
+    if (githubToken) {
+      apiHeaders["Authorization"] = `token ${githubToken}`;
+    }
+
+    // Fetch Gist details from the GitHub API
+    const gistApiResponse = await fetch(gistApiUrl, { headers: apiHeaders });
     if (!gistApiResponse.ok) {
+      const rateLimitRemaining = gistApiResponse.headers.get(
+        "x-ratelimit-remaining"
+      );
+      // This throws a much more descriptive error if the GitHub API call fails.
       throw new Error(
-        `Failed to fetch Gist details from GitHub API: ${gistApiResponse.statusText}`
+        `GitHub API error: ${gistApiResponse.status} ${
+          gistApiResponse.statusText
+        }. (Rate limit remaining: ${rateLimitRemaining ?? "N/A"})`
       );
     }
     const gistData = await gistApiResponse.json();
 
-    // 3. Find the first file in the Gist and get its raw URL.
-    // This assumes the Gist contains at least one JSON file.
+    // Find the first JSON file in the Gist to get its raw URL.
     const fileKey = Object.keys(gistData.files).find((key) =>
       key.endsWith(".json")
     );
     if (!fileKey) {
-      throw new Error("No JSON file found in the Gist.");
+      throw new Error(
+        "No JSON file found in the Gist. Please ensure your Gist contains one file ending with '.json'."
+      );
     }
     const rawUrl = gistData.files[fileKey].raw_url;
 
-    // 4. Fetch the actual course data from the dynamically found raw URL.
+    // Fetch the actual course data from the raw URL
     const dataResponse = await fetch(rawUrl, {
-      // Use cache-busting for the fetch itself if force refresh is requested
       cache: request.query.force === "true" ? "no-cache" : "default",
     });
 
     if (!dataResponse.ok) {
       throw new Error(
-        `Failed to fetch from Gist raw URL with status: ${dataResponse.status}`
+        `Failed to fetch content from Gist raw URL (${rawUrl}) with status: ${dataResponse.status}`
       );
     }
-    const courses: { courses: CourseSection[] } = await dataResponse.json();
+    const courses = await dataResponse.json();
 
-    // Allow forcing a refresh via query parameter.
+    // Caching logic remains the same (15 minutes)
     const forceRefresh = request.query.force === "true";
-    // Set cache to 15 minutes (900 seconds). This is a good balance.
     const cacheHeader = forceRefresh
       ? "no-cache"
       : "s-maxage=900, stale-while-revalidate";
-
     response.setHeader("Cache-Control", cacheHeader);
 
-    // Return the course data as a JSON response
     return response.status(200).json(courses);
   } catch (error: any) {
-    console.error(error);
+    console.error("Error in getClasses API:", error.message);
+    // Pass the more detailed error message to the frontend
     return response
       .status(500)
       .json({ error: "Failed to fetch course data.", details: error.message });
