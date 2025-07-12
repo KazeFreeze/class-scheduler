@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { ArrowRight, ArrowLeft, Wand2, ChevronUp, ChevronDown, Settings } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Wand2, ChevronUp, ChevronDown, Settings, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
 import { SectionItem } from './SectionItem';
 import { checkForConflict } from '../utils/schedulerUtils';
 import type { CourseSection, Requirement, Schedule, AppStep } from '../types';
@@ -33,6 +33,14 @@ export const Step2_SelectSections = ({ allCoursesData, setAllCoursesData, requir
         const courseCodes = item.type === 'group' ? item.courses : [item.id];
         return allCoursesData.filter(c => !c.isCustom && courseCodes?.includes(c["Subject Code"]));
     }, [requiredItems, allCoursesData]);
+    
+    const handleExpandAll = () => {
+        setExpandedItems(new Set(requiredItems.map(r => r.id)));
+    };
+
+    const handleCollapseAll = () => {
+        setExpandedItems(new Set());
+    };
 
     const handleToggleSection = (requirementId: string, section: CourseSection, isSelected: boolean) => {
         setSelectedSections(prev => {
@@ -77,6 +85,16 @@ export const Step2_SelectSections = ({ allCoursesData, setAllCoursesData, requir
 
     return (
         <div className="flex-1 flex flex-col p-4 overflow-y-auto">
+            <div className="flex justify-end items-center gap-3 mb-3">
+                <button onClick={handleExpandAll} className="flex items-center gap-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded-md">
+                    <ChevronsUpDown size={16} />
+                    Expand All
+                </button>
+                <button onClick={handleCollapseAll} className="flex items-center gap-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded-md">
+                    <ChevronsDownUp size={16} />
+                    Collapse All
+                </button>
+            </div>
             <div className="flex-grow overflow-y-auto pr-2 space-y-4">
                 {requiredItems.map(item => {
                     const sections = getSectionsForId(item.id);
