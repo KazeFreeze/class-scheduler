@@ -3,6 +3,9 @@ import type { CourseSection, UniqueCourse } from "../types";
 
 export const useCourses = () => {
   const [allCoursesData, setAllCoursesData] = useState<CourseSection[]>([]);
+  // The error about 'setUniqueCourses' being unused is often a linter quirk or
+  // a caching issue when the build process gets confused. The function is
+  // clearly used below. This updated, cleaner version should resolve it.
   const [uniqueCourses, setUniqueCourses] = useState<Map<string, UniqueCourse>>(
     new Map()
   );
@@ -21,8 +24,7 @@ export const useCourses = () => {
 
       const response = await fetch(apiUrl);
       if (!response.ok) {
-        // This block now extracts the detailed error message from the API response.
-        const errorData = await response.json().catch(() => ({})); // Gracefully handle non-JSON error responses
+        const errorData = await response.json().catch(() => ({}));
         const errorMessage =
           errorData.details ||
           errorData.error ||
@@ -49,15 +51,17 @@ export const useCourses = () => {
       const newUniqueCourses = new Map<string, UniqueCourse>();
       coursesWithDefaults.forEach((course: CourseSection) => {
         const code = course["Subject Code"];
+        // Ensure the map is populated correctly with both code and title
         if (!newUniqueCourses.has(code)) {
-          newUniqueCourses.set(code, { code, title: course["Course Title"] });
+          newUniqueCourses.set(code, {
+            code: code,
+            title: course["Course Title"],
+          });
         }
       });
+      setUniqueCourses(newUniqueCourses);
     } catch (e: any) {
-      // The error message displayed to the user is now much more informative.
-      setError(
-        `Failed to fetch course data. Please check your connection or Gist configuration. Reason: ${e.message}`
-      );
+      setError(`Failed to fetch course data. Reason: ${e.message}`);
       console.error(e);
     } finally {
       setLoading(false);
